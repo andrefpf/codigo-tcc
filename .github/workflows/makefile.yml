@@ -13,9 +13,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      
-    - name: Install dependencies
-      run: apt install texlive-latex-base
-      
-    - name: Generate pdf
-      run: make pdf
+
+    - name: Convert to pdf
+      id: convert-to-pdf
+      uses: closoco/pdflatex-action@v1.0.0
+      with:
+        texFile: ./file.tex
+
+    - name: Store pdf
+      uses: actions/upload-artifact@v2
+      with:
+        name: file.pdf
+        path: file.pdf
