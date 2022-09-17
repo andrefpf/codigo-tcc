@@ -1,10 +1,6 @@
-name: Makefile CI
+name: Compile LaTex
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push]
 
 jobs:
   build:
@@ -14,14 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Convert to pdf
-      id: convert-to-pdf
-      uses: closoco/pdflatex-action@v1.0.0
+    - name: Convert example.tex
+      uses: xu-cheng/latex-action@master
       with:
-        texFile: ./dissertation/example.tex
-
-    - name: Store pdf
-      uses: actions/upload-artifact@v2
-      with:
-        name: example
-        path: ./dissertation/example.pdf
+        root_file: dissertation/example.tex
+        working_directory: dissertation/
