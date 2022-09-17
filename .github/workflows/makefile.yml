@@ -14,4 +14,4 @@ jobs:
       uses: xu-cheng/latex-action@master
       with:
         root_file: example.tex
-        working_directory: ../../dissertation/
+        working_directory: dissertation/
