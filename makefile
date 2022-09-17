@@ -1,7 +1,8 @@
 encode:
-	./scripts/shift.sh
-	./scripts/ppm2pgx.sh
-	./scripts/run.sh
+	./scripts/encode.sh
+
+decode:
+	./scripts/decode.sh
 
 pdf:
 	./scripts/tex2pdf.sh
