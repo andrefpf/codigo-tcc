@@ -10,14 +10,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Convert example.tex
+    - name: Convert TEX files
       uses: xu-cheng/latex-action@master
       with:
         root_file: example.tex
         working_directory: dissertation/
     
-    - name: Upload main.pdf
-      uses: actions/upload-artifact@v1
+    - name: Upload PDF files
+      uses: actions/upload-artifact@v3
       with:
         name: example
         path: dissertation/example.pdf
