@@ -15,3 +15,9 @@ jobs:
       with:
         root_file: example.tex
         working_directory: dissertation/
+    
+    - name: Upload main.pdf
+      uses: actions/upload-artifact@v1
+      with:
+        name: example
+        path: dissertation/example.pdf
