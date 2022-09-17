@@ -13,5 +13,5 @@ jobs:
     - name: Convert example.tex
       uses: xu-cheng/latex-action@master
       with:
-        root_file: dissertation/example.tex
-        working_directory: dissertation/
+        root_file: example.tex
+        working_directory: ../../dissertation/
