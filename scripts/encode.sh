@@ -1,8 +1,8 @@
 JPLM_BINS="jplm/bin"  
-INPUT_PATH="examples/datasets/Bikes/"
-SHIFTED_PATH="/tmp/shifted/"
-PGX_PATH="/tmp/pgx/"
-OUTPUT_JPL_FILE="examples/bikes.jpl"
+INPUT_PATH="datasets/Bikes/"
+SHIFTED_PATH="encoded/shifted/"
+PGX_PATH="encoded/pgx/"
+OUTPUT_JPL_FILE="encoded/bikes.jpl"
 
 # Create new tmp folders
 rm -rf ${SHIFTED_PATH} ${PGX_PATH}
@@ -29,6 +29,3 @@ ${JPLM_BINS}/jpl-encoder-bin --show-progress-bar --show-runtime-statistics --par
     --transform_size_minimum_intra_view_vertical 4                                   \
     --transform_size_minimum_intra_view_horizontal 4                                 \
     --input ${PGX_PATH} --output ${OUTPUT_JPL_FILE}
-
-# Remove tmp folders
-rm -rf ${SHIFTED_PATH} ${PGX_PATH}
