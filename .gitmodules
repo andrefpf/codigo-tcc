@@ -1,0 +1,3 @@
+[submodule "jplm"]
+	path = jplm
+	url = https://gitlab.com/wg1/jpeg-pleno-refsw.git
