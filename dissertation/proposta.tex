@@ -1,0 +1,138 @@
+\documentclass[embeddedlogo]{ufsc-thesis-rn46-2019}
+
+\usepackage[T1]{fontenc} % fontes
+\usepackage[utf8]{inputenc} % UTF-8
+\usepackage{lipsum} % Gerador de texto
+\usepackage{pdfpages} % Inclui PDF externo (ficha catalográfica)
+
+% Usado para mostrar código
+\usepackage{minted}
+\newmintinline[mt]{latex}{fontsize=\normalsize}
+\newmintinline[mft]{latex}{fontsize=\footnotesize}
+\setminted{fontsize=\tiny,linenos,xleftmargin=2em}
+\setmintedinline{breaklines,breakbytokenanywhere}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Configurações da classe (dados do trabalho)                  %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\titulo[]{Teste título jpeg pleno lightfields 123}
+
+\autor{André Filipe da Silva Fernandes}
+\data{\today}
+\instituicao{Universidade Federal de Santa Catarina}
+\centro{Centro Tecnológico}
+\local{Florianópolis} % Apenas cidade! Sem estado
+% \programa{Bacharelado em Ciência da Computação}
+\tcc
+\departamento{Departamento de Informática e Estatística}
+\curso{Ciência da Computação}
+\titulode{Bacharel em Ciência da Computação}
+
+\orientador{Prof. Ismael Seidel, Dr.}
+\coorientador{Prof. José Luís A. Güntzel (?), Dr.}
+\membrabanca{Prof. Lorem Ipsum, Dr.}{Universidade Federal de Santa Catarina}
+\membrobanca{Prof. Lorem Ipsum, Dr.}{Universidade Federal de Santa Catarina}
+\membrobanca{Prof. Lorem Ipsum, Dr.}{Universidade Federal da Terra de Ninguém}
+\coordenador{Prof. Lorem Ipsum, Dr}
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Principais elementos pré-textuais                            %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pretextual%
+\imprimircapa%
+\imprimirfolhaderosto*
+
+\protect\incluirfichacatalografica{ficha.pdf}
+\imprimirfolhadecertificacao
+
+\begin{dedicatoria}
+    Este trabalho é dedicado à wikipedia e ao stackoverflow. 
+\end{dedicatoria}
+  
+\begin{agradecimentos}
+    O presente trabalho foi realizado com apoio da Coordenação de Aperfeiçoamento de Pessoal de Nível Superior -- Brasil (CAPES) -- Código de Financiamento 001.
+\end{agradecimentos}
+  
+\begin{epigrafe}
+    For a number of years I have been familiar with the observation that the quality of programmers is a decreasing function of the density of go to statements in the programs they produce \\
+    \cite{dijkstra1968}
+\end{epigrafe}
+
+\begin{resumo}[Resumo]
+    Aqui deve ser inserido um resumo de 150 a 500 palavras (limitação de tamanho dada pela BU). A linguagem deve ser português e a hifenização já foi alterada. O resumo em português deve preceder o resumo em inglês, mesmo que o trabalho seja escrito em inglês. A BU também diz que deve ser usada a voz ativa e o discurso deve ser na 3ª pessoa. A estrutura do resumo pode ser similar a estrutura usada em artigos: Contexto -- Problema -- Estado da arte -- Solução proposta  -- Resultados.
+  
+    % Atenção! a BU exige separação através de ponto (.). Ela recomanda de 3 a 5 keywords
+    \vspace{\baselineskip} 
+    \textbf{Palavras-chave:} Palavra-chave. Ponto como separador. Bla.
+\end{resumo}
+
+\begin{resumo}[Resumo Estendido]
+    \section*{Introdução} 
+    A hifenização é alterada para \texttt{brazil}, mesmo para documentos em inglês. Descrever brevemente esses itens exigidos pela BU. Como a RN 95/CUn/2017 é mais recente e impõe outras regras a revelia de regimentos e regulamentos, é mais sábio obedecê-la. Lembre que esse resumo estendido deve term entre 2 e 5 páginas.
+    
+    \lipsum[1]
+    \section*{Objetivos} 
+    \lipsum[2]
+    \section*{Metodologia} 
+    \lipsum[3]
+    \section*{Resultados e Discussão} 
+    \lipsum[4]
+    \section*{Considerações Finais} 
+    \lipsum[5]
+  
+    \vspace{\baselineskip}  % Atenção! manter igual ao resumo
+    \textbf{Palavras-chave:} Palavra-chave. Outra Palavra-chave composta. Bla.
+\end{resumo}
+
+\begin{abstract}
+    Enlish version of the plain ``resumo'' above. Done with environment
+    \texttt{abstract}. Hyphenization is automatically changed to english.
+
+    \vspace{\baselineskip} 
+    \textbf{Keywords:} Keyword. Another Compound Keyword. Bla.
+\end{abstract}
+
+\listoffigures*  % O * evita que apareça no sumário
+
+\tableofcontents*
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Corpo do texto                                               %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\textual%
+
+\chapter{Introdução}
+bla bla bla bla 
+
+\section{Seção 1}
+    bla bla bla
+
+\section{Seção 2}
+    bla bla bla
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Elementos pós-textuais                                       %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\postextual
+\bibliography{userguide}
+
+\end{document}
