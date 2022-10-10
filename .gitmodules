@@ -1,0 +1,9 @@
+[submodule "jplm"]
+	path = jplm
+	url = https://gitlab.com/wg1/jpeg-pleno-refsw.git
+[submodule "ufsc-thesis-rn46-2019"]
+	path = ufsc-thesis-rn46-2019
+	url = https://github.com/alexishuf/ufsc-thesis-rn46-2019
+[submodule "dissertation/ufsc-thesis-rn46-2019"]
+	path = dissertation/ufsc-thesis-rn46-2019
+	url = https://github.com/alexishuf/ufsc-thesis-rn46-2019
