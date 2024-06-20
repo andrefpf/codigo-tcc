@@ -1778,10 +1778,10 @@ index ea3370cc..a55a2cf3 100644
  
  
 diff --git a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
-index 76d4cae1..fdbc8a01 100644
+index 76d4cae1..faf0d938 100644
 --- a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
 +++ b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
-@@ -247,6 +247,60 @@ void JPLMEncoderConfigurationLightField4DTransformMode::add_options() {
+@@ -247,6 +247,74 @@ void JPLMEncoderConfigurationLightField4DTransformMode::add_options() {
        this->current_hierarchy_level,
        {[this]() -> std::string { return "1000.0"; }}});
  
@@ -1802,13 +1802,27 @@ index 76d4cae1..fdbc8a01 100644
 +      this->current_hierarchy_level,
 +      {[this]() -> std::string { return "0"; }}});
 +
++  this->add_cli_json_option({"--target-rate-iterations", "-tri",
++      "Maximum number of iterations to allow during the target rate search process.",
++      [this](const nlohmann::json &conf) -> std::optional<std::string> {
++        if (conf.contains("target_rate_iterations")) {
++          return std::to_string(conf["target_rate_iterations"].get<int>());
++        }
++        return std::nullopt;
++      },
++      [this](std::string arg) {
++        std::string::size_type sz;
++        this->target_rate_iterations = std::stoi(arg, &sz);
++      },
++      this->current_hierarchy_level,
++      {[this]() -> std::string { return "40"; }}});
 +
 +  this->add_cli_json_option({"--target-rate-algorithm", "-tra",
 +      "Algorithm used to control the rate."
 +      "The options are: bisection, hsplit and hslope.",
 +      [this](const nlohmann::json &conf) -> std::optional<std::string> {
-+        if (conf.contains("target_rate")) {
-+          return conf["fast_rate_search"].get<std::string>();
++        if (conf.contains("target_rate_algorithm")) {
++          return conf["target_rate_algorithm"].get<std::string>();
 +        }
 +        return std::nullopt;
 +      },
@@ -1842,7 +1856,7 @@ index 76d4cae1..fdbc8a01 100644
    this->add_cli_json_option({"--show-error-estimate", "-errorest",
        "Shows error estimates computed during RDO. Although close to the real "
        "error figures, they are only estimates (do not account for rounding "
-@@ -327,11 +381,29 @@ JPLMEncoderConfigurationLightField4DTransformMode::get_compression_type()
+@@ -327,11 +395,33 @@ JPLMEncoderConfigurationLightField4DTransformMode::get_compression_type()
  }
  
  
@@ -1864,6 +1878,10 @@ index 76d4cae1..fdbc8a01 100644
 +  return target_rate_algorithm;
 +}
 +
++int JPLMEncoderConfigurationLightField4DTransformMode::get_target_rate_iterations() const {
++  return target_rate_iterations;
++}
++
 +bool JPLMEncoderConfigurationLightField4DTransformMode::get_rate_search_is_fast_mode() const {
 +  return rate_search_is_fast_mode;
 +}
@@ -1873,27 +1891,29 @@ index 76d4cae1..fdbc8a01 100644
      get_minimal_transform_size_intra_view_vertical() {
    return minimal_transform_size_intra_view_vertical_v;
 diff --git a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
-index 9168f412..b2c3fa4a 100644
+index 9168f412..23419d99 100644
 --- a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
 +++ b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
-@@ -83,6 +83,10 @@ class JPLMEncoderConfigurationLightField4DTransformMode
+@@ -83,6 +83,11 @@ class JPLMEncoderConfigurationLightField4DTransformMode
    uint32_t minimal_transform_size_intra_view_horizontal_u = 4;
  
    double lambda = 1000.0;
 +  double target_rate = 0; // if 0 use lambda instead
++  int target_rate_iterations = 40;
 +  std::string target_rate_algorithm = "hslope"; // if 0 use lambda instead
 +  bool rate_search_is_fast_mode = false;
 +
    BorderBlocksPolicy border_policy = BorderBlocksPolicy::truncate;
  
    double transform_scale_t = 1.0;
-@@ -101,7 +105,12 @@ class JPLMEncoderConfigurationLightField4DTransformMode
+@@ -101,7 +106,13 @@ class JPLMEncoderConfigurationLightField4DTransformMode
  
   public:
    JPLMEncoderConfigurationLightField4DTransformMode(int argc, char **argv);
 +  void set_lambda(double lambda);
    double get_lambda() const;
 +  double get_target_rate() const;
++  int get_target_rate_iterations() const;
 +  std::string get_target_rate_algorithm() const;
 +  bool get_rate_search_is_fast_mode() const;
 +
@@ -2572,7 +2592,7 @@ index f7def217..1a060198 100644
    void encode_segmentation_lowerBitPlane_flag(uint8_t bitplane);
    void encode_segmentation_splitBlock_flag(uint8_t bitplane);
 diff --git a/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h b/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
-index 1939b39b..4a91b572 100644
+index 1939b39b..2421f1be 100644
 --- a/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
 +++ b/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
 @@ -335,7 +335,13 @@ class JPLM4DTransformModeLightFieldEncoder
@@ -2664,7 +2684,7 @@ index 1939b39b..4a91b572 100644
      if (!is_truncated()) {
        std::cerr
            << "WARNING: the error estimates are considering errors outside the "
-@@ -562,10 +594,262 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
+@@ -562,10 +594,263 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
    }
  }
  
@@ -2728,7 +2748,7 @@ index 1939b39b..4a91b572 100644
 +  RDCostResult rd_cost(0,0,0,0);
 +
 +  double lambda_start = 1;
-+  double lambda_end = 1e6;
++  double lambda_end = 1e9;
 +  const auto number_of_channels = ref_to_lightfield.get_number_of_channels_in_view();
 +  const auto n_pixels = ref_to_lightfield.get_total_number_of_pixels_per_channel();
 +
@@ -2782,7 +2802,7 @@ index 1939b39b..4a91b572 100644
 +  RDCostResult rd_cost(0,0,0,0);
 +
 +  double lambda_start = 1;
-+  double lambda_end = 1e6;
++  double lambda_end = 1e9;
 +  const auto number_of_channels = ref_to_lightfield.get_number_of_channels_in_view();
 +  const auto n_pixels = ref_to_lightfield.get_total_number_of_pixels_per_channel();
 +
@@ -2891,6 +2911,7 @@ index 1939b39b..4a91b572 100644
 +void JPLM4DTransformModeLightFieldEncoder<PelType>::setup_rate_control() {
 +  const double target_rate = transform_mode_encoder_configuration->get_target_rate();
 +  const auto target_rate_algorithm = transform_mode_encoder_configuration->get_target_rate_algorithm();
++  const auto max_iterations = transform_mode_encoder_configuration->get_target_rate_iterations();
 +
 +  // if no target rate was provided, nothing need to be done and the
 +  // lambda passed as argument (or the default value) will be used
@@ -2928,7 +2949,7 @@ index 1939b39b..4a91b572 100644
  
    auto& codestreams = this->jpl_file->get_reference_to_codestreams();
    
-@@ -582,6 +866,7 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::finalization() {
+@@ -582,6 +867,7 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::finalization() {
        std::move(codestream_box));
  
    this->show_error_estimate();
@@ -2936,7 +2957,7 @@ index 1939b39b..4a91b572 100644
  }
  
  
-@@ -590,86 +875,57 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::run_for_block_4d(
+@@ -590,86 +876,57 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::run_for_block_4d(
      const uint32_t channel, const LightfieldCoordinate<uint32_t>& position,
      const LightfieldDimension<uint32_t>& size) {
  
