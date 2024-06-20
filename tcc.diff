@@ -1,0 +1,3673 @@
+diff --git a/.gitignore b/.gitignore
+index 1e41010e..1c67527f 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -719,3 +719,5 @@ healthchecksdb
+ MigrationBackup/
+ 
+ # End of https://www.gitignore.io/api/c++,cmake,xcode,eclipse,netbeans,clion+all,intellij+all,visualstudio,visualstudiocode
++
++settings.json
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+new file mode 100644
+index 00000000..27a3ed13
+--- /dev/null
++++ b/.vscode/settings.json
+@@ -0,0 +1,58 @@
++{
++    "files.associations": {
++        "chrono": "cpp",
++        "string": "cpp",
++        "ostream": "cpp",
++        "iostream": "cpp",
++        "cctype": "cpp",
++        "clocale": "cpp",
++        "cmath": "cpp",
++        "cstdarg": "cpp",
++        "cstddef": "cpp",
++        "cstdio": "cpp",
++        "cstdlib": "cpp",
++        "ctime": "cpp",
++        "cwchar": "cpp",
++        "cwctype": "cpp",
++        "array": "cpp",
++        "atomic": "cpp",
++        "bit": "cpp",
++        "*.tcc": "cpp",
++        "compare": "cpp",
++        "concepts": "cpp",
++        "cstdint": "cpp",
++        "map": "cpp",
++        "unordered_map": "cpp",
++        "vector": "cpp",
++        "exception": "cpp",
++        "algorithm": "cpp",
++        "functional": "cpp",
++        "iterator": "cpp",
++        "memory": "cpp",
++        "memory_resource": "cpp",
++        "numeric": "cpp",
++        "optional": "cpp",
++        "random": "cpp",
++        "string_view": "cpp",
++        "system_error": "cpp",
++        "tuple": "cpp",
++        "type_traits": "cpp",
++        "utility": "cpp",
++        "initializer_list": "cpp",
++        "iomanip": "cpp",
++        "iosfwd": "cpp",
++        "istream": "cpp",
++        "limits": "cpp",
++        "new": "cpp",
++        "ranges": "cpp",
++        "sstream": "cpp",
++        "stdexcept": "cpp",
++        "streambuf": "cpp",
++        "typeinfo": "cpp",
++        "bitset": "cpp",
++        "span": "cpp",
++        "regex": "cpp",
++        "valarray": "cpp"
++    },
++    "cmake.configureOnOpen": false
++}
+\ No newline at end of file
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index de5fd80f..400a3a47 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,217 +1,49 @@
+ cmake_minimum_required(VERSION 3.10)
+ set(CMAKE_CXX_STANDARD 17)
+ 
+-project(jplm)
+-
+-set(JPLM_NAME "JPEG Pleno Model")
+-
++### Configuring the Project
+ # The version number.
+ set(JPLM_VERSION_MAJOR 0)
+-set(JPLM_VERSION_MINOR 1)
++set(JPLM_VERSION_MINOR 3)
+ set(JPLM_VERSION_PATCH 0)
++# Project alias and complete version number
++project(jplm VERSION ${JPLM_VERSION_MAJOR}.${JPLM_VERSION_MINOR}.${JPLM_VERSION_PATCH})
++# Project name
++set(JPLM_NAME "JPEG Pleno Model")
+ 
+-set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake;${CMAKE_MODULE_PATH}")
+-
+-
+-#configuring paths
+-if (CMAKE_BUILD_TYPE MATCHES Debug)
+-  set(CMAKE_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib-debug)
+-  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin-debug)
+-else (CMAKE_BUILD_TYPE MATCHES Debug)
+-  set(CMAKE_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib)
+-  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+-endif (CMAKE_BUILD_TYPE MATCHES Debug)
+ 
++## setting the path to where we put all the cmake files to include here
++set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake;${CMAKE_MODULE_PATH}")
+ 
+-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_DIR})
++### Including build paths
++include(JPLMBuildPaths)
+ 
+-include(JPLMCompilerOptimizations)
+-
+-##puts the configuration file in the binary dir
++##puts the configuration file in the source dir
+ configure_file(
+     "${CMAKE_HOME_DIRECTORY}/cmake/JPLMConfig.h.in"
+-    "${PROJECT_BINARY_DIR}/JPLMConfig.h"
++    "${CMAKE_SOURCE_DIR}/source/JPLMConfig.h"
+ )
+ 
++### Including compiler configurations
++include(JPLMCompilerOptimizations)
+ 
+-include_directories("${PROJECT_BINARY_DIR}")
+-
+-
+-include_directories(.)
+-include_directories(cfg)
+-include_directories(doc)
+-include_directories(source)
+-
+-#configuring the compiler
++### configuring the compiler warnings
+ include(JPLMWarnings)
+ 
+-
+ #including external libraries by downloading them from git..
+-include(ExternalGoogleTest)
+-include(ExternalMagic_Enum)
+-include(ExternalCppConsoleTable)
+-include(ExternalCXXProperties)
+-include(ExternalCPPItertools)
+-include(ExternalNlohmannJSON)
+-include(Externaltqdm-cpp)
+-include(ExternalHOHashlibpp)
+-
+-if (UNIX)
+-    option(VISUALIZATION_TOOL "Compiles the Light field Visualization tool" OFF)
+-    FIND_PACKAGE(X11)
+-    if (VISUALIZATION_TOOL)
+-      if (X11_FOUND)
+-        message(STATUS "\nFOUND X11-LIBS")
+-      else (X11_FOUND)
+-        message(STATUS "\nX11-LIBS NOT FOUND")
+-        message(STATUS "\nYou may use the cmake flag -DVISUALIZATION_TOOL=OFF to
+-                skip the lightfield visualization tool compilation
+-                (e.g ~/jplm/build$ cmake -DVISUALIZATION_TOOL=OFF ..).")
+-        message(FATAL_ERROR "X11 is required for the Light field visualization tool.")
+-      endif (X11_FOUND)
+-    else (VISUALIZATION_TOOL)
+-      message(STATUS "\nLIGHTFIELD VISUALIZATION TOOL TARGET IS DISABLED")
+-    endif (VISUALIZATION_TOOL)
+-endif (UNIX)
+-
+-if(CMAKE_COMPILER_IS_GNUCXX)
+-    link_libraries(stdc++fs)
+-endif()
+-
+-# directories here header files may be found
+-# include_directories(.)
+-# include_directories(cfg)
+-# include_directories(doc)
+-include_directories(source)
+-
+-#setting up the doxygen documentation build
+-option(BUILD_DOC "Build documentation" ON)
+-# option(BUILD_DOC "Build documentation" OFF)
+-
+-
+-add_executable(jpl-encoder-bin
+-    source/App/Encoder/jpl-encoder.cpp
+-    CMakeLists.txt)
++include(JPLMExternal)
+ 
++### Build options
++include(JPLMBuildOptions)
+ 
+-find_package(OpenMP)
+-if(OpenMP_CXX_FOUND)
+-    target_link_libraries(jpl-encoder-bin PUBLIC OpenMP::OpenMP_CXX)
+-endif()
+-
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_common)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part1_common)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part1_common_boxes)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part2_encoder)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part2_common)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part2_common_boxes)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part2_common_transform_mode)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_part2_encoder_transform_mode)
+-target_link_libraries(jpl-encoder-bin PRIVATE stream)
+-target_link_libraries(jpl-encoder-bin PRIVATE image)
+-target_link_libraries(jpl-encoder-bin PRIVATE jplm_utils_stats)
+-
+-
+-
+-
+-add_executable(jpl-decoder-bin
+-    source/App/Decoder/jpl-decoder.cpp
+-    CMakeLists.txt)
+-
+-if(OpenMP_CXX_FOUND)
+-    target_link_libraries(jpl-decoder-bin PUBLIC OpenMP::OpenMP_CXX)
+-endif()
+-
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_common)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part1_common)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part1_common_boxes)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part1_decoder)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_common)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_decoder)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_boxes_decoder)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_common_boxes)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_decoder_transform_mode)
+-target_link_libraries(jpl-decoder-bin PRIVATE stream)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_utils_stats)
+-
+-
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part1_common)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_encoder)
+-target_link_libraries(jpl-decoder-bin PRIVATE jplm_part2_common)
+-target_link_libraries(jpl-decoder-bin PRIVATE image)
+-
+-
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/App/Utils/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/BasicConfiguration/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Image/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Stream/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Stats/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Boxes/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Boxes/Generic/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Boxes/Parsers)
+-
+-# add_library(jplm_boxes_decoding)
+-# target_link_libraries(jplm_boxes_decoding jplm_common_boxes_parsers jplm_common_boxes)
+-
+-
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Common/Boxes)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Decoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Decoder/Boxes)
+-
+-# target_link_libraries(jplm_common_boxes_parsers jplm_part1_boxes_decoder)
+-
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/Boxes)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/TransformMode)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/Boxes)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/TransformMode)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Encoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Encoder/TransformMode)
+-
+-
+-enable_testing()
+-include(JPLMTests)
+-
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Utils/Image/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Utils/Stream/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/ThirdParty/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/Generic/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/Parsers/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Common/Boxes/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Encoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Decoder/Boxes/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Decoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/Boxes)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Decoder/Boxes)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Decoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Encoder/)
+-add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/TransformMode/)
+-
++# directories where header files may be found
++include_directories("${CMAKE_HOME_DIRECTORY}/source")
++## dependencies (this may need to change for installing the JPLM lib...)
++include_directories("${PROJECT_BINARY_DIR}")
+ 
++######## adding subdirectories
++include(JPLMDirectories)
+ 
+-if(BUILD_DOC)
+-  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+-  file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
+-  find_package(Doxygen)
+-  if (DOXYGEN_FOUND)
+-    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in)
+-    set(DOXYGEN_OUT ${CMAKE_SOURCE_DIR}/doc/Doxyfile)
+-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+-    message("Documentation build started")
+-    add_custom_target(doxygen ALL
+-        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+-        COMMENT "Generating API documentation with Doxygen"
+-        VERBATIM)
+-  else (DOXYGEN_FOUND)
+-    message("Doxygen must be installed to generate the documentation.")
+-  endif (DOXYGEN_FOUND)
+-endif (BUILD_DOC)
++######## adding tests
++# enable_testing()
++# include(JPLMTests)
+\ No newline at end of file
+diff --git a/cmake/JPLMBuildOptions.cmake b/cmake/JPLMBuildOptions.cmake
+new file mode 100644
+index 00000000..d2c0e1a5
+--- /dev/null
++++ b/cmake/JPLMBuildOptions.cmake
+@@ -0,0 +1,85 @@
++##### Setting options
++
++#setting up the doxygen documentation build
++option(BUILD_DOC "Build documentation" ON)
++# option(BUILD_DOC "Build documentation" OFF)
++
++#setting up the parallel implementation build
++#Notice: it depends on having OpenMP available
++option(PARALLEL_JPLM "Create Parallel JPLM" ON)
++#option(PARALLEL_JPLM "Create Parallel JPLM" OFF)
++
++#setting up the option to build a light field visualization tool
++#Notice? it depends on having X11 library installed
++#option(VISUALIZATION_TOOL "Compiles the Light field Visualization tool" ON)
++option(VISUALIZATION_TOOL "Compiles the Light field Visualization tool" OFF)
++
++# option(DEPENDENCY_GRAPH "Generate a dependency graph using graphviz" ON)
++option(DEPENDENCY_GRAPH "Generate a dependency graph using graphviz" OFF)
++
++##### Done setting options
++
++
++######## checking options
++
++#checking if need to build documentation
++if(BUILD_DOC)
++  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
++  file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
++  find_package(Doxygen)
++  if (DOXYGEN_FOUND)
++    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in)
++    set(DOXYGEN_OUT ${CMAKE_SOURCE_DIR}/doc/Doxyfile)
++    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
++    message("Documentation build started")
++    add_custom_target(doxygen ALL
++        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++        COMMENT "Generating API documentation with Doxygen"
++        VERBATIM)
++  else (DOXYGEN_FOUND)
++    message("Doxygen must be installed to generate the documentation.")
++  endif (DOXYGEN_FOUND)
++endif (BUILD_DOC)
++
++
++if(PARALLEL_JPLM)
++  find_package(OpenMP REQUIRED)
++  if (OpenMP_FOUND)
++    message("OpenMP is installed and it will be used to generate the parallel version of JPLM.")
++  else (OpenMP_FOUND)
++    message("OpenMP must be installed in your system to enable the parallel version of JPLM.")
++  endif (OpenMP_FOUND)
++else (PARALLEL_JPLM)
++  message("JPLM will be built in its sequential version.")
++  message("To enable the build with parallel support, use -DPARALLEL_JPLM=ON with cmake.")
++endif (PARALLEL_JPLM)
++
++if (UNIX)
++    if (VISUALIZATION_TOOL)
++      find_package(X11)
++      if (X11_FOUND)
++        message(STATUS "\nFOUND X11-LIBS")
++      else (X11_FOUND)
++        message(STATUS "\nX11-LIBS NOT FOUND")
++        message(STATUS "\nYou may use the cmake flag -DVISUALIZATION_TOOL=OFF to
++                skip the lightfield visualization tool compilation
++                (e.g ~/jplm/build$ cmake -DVISUALIZATION_TOOL=OFF ..).")
++        message(FATAL_ERROR "X11 is required for the Light field visualization tool.")
++      endif (X11_FOUND)
++    else (VISUALIZATION_TOOL)
++      message(STATUS "\nLIGHTFIELD VISUALIZATION TOOL TARGET IS DISABLED")
++    endif (VISUALIZATION_TOOL)
++endif (UNIX)
++
++
++
++# if (DEPENDENCY_GRAPH)
++#   add_custom_target(graphviz ALL
++#       COMMAND ${CMAKE_COMMAND} "--graphviz=dependencies.dot" .
++#       COMMAND dot -Tpng dependencies.dot -o dependencies-full.png
++#       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
++#   )
++# endif (DEPENDENCY_GRAPH)
++
++######## done checking options
+\ No newline at end of file
+diff --git a/cmake/JPLMBuildPaths.cmake b/cmake/JPLMBuildPaths.cmake
+new file mode 100644
+index 00000000..2c782868
+--- /dev/null
++++ b/cmake/JPLMBuildPaths.cmake
+@@ -0,0 +1,14 @@
++### Configuring Paths
++
++## Notice: if you enable debug mode, the code will compile to different folders
++if (CMAKE_BUILD_TYPE MATCHES Debug)
++  set(CMAKE_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib-debug)
++  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin-debug)
++else (CMAKE_BUILD_TYPE MATCHES Debug)
++  set(CMAKE_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib)
++  set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
++endif (CMAKE_BUILD_TYPE MATCHES Debug)
++
++set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
++set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_DIR})
++
+diff --git a/cmake/JPLMCompilerOptimizations.cmake b/cmake/JPLMCompilerOptimizations.cmake
+index a04971c5..c297823a 100644
+--- a/cmake/JPLMCompilerOptimizations.cmake
++++ b/cmake/JPLMCompilerOptimizations.cmake
+@@ -16,3 +16,8 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+ else()
+ 	message("The compiler is not supported. Please configure the proper warnings in cmake/JPLMCompilerOptimizations.cmake")
+ endif()
++
++
++# if(CMAKE_COMPILER_IS_GNUCXX)
++#   link_libraries(stdc++fs)
++# endif()
+\ No newline at end of file
+diff --git a/cmake/JPLMDirectories.cmake b/cmake/JPLMDirectories.cmake
+new file mode 100644
+index 00000000..21289a07
+--- /dev/null
++++ b/cmake/JPLMDirectories.cmake
+@@ -0,0 +1,43 @@
++### adding subdirectories for apps (encoder and decoder)
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/App/Encoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/App/Decoder/)
++
++### adding subdirectory for util apps
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/App/Utils/)
++
++### adding subdirectories for libraries
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/BasicConfiguration/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Image/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Stream/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Utils/Stats/)
++
++
++### common code that is shared between all parts
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Decoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Encoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Boxes/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Boxes/Generic/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Common/Decoder/Boxes/)
++
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Common/Boxes)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Decoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part1/Decoder/Boxes)
++
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/Boxes)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Common/TransformMode)
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/Boxes)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/TransformMode)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/PredictionMode)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Decoder/)
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Encoder/TransformMode)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Encoder/PredictionMode)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Lib/Part2/Encoder/)
+\ No newline at end of file
+diff --git a/cmake/JPLMExternal.cmake b/cmake/JPLMExternal.cmake
+new file mode 100644
+index 00000000..7f8aad11
+--- /dev/null
++++ b/cmake/JPLMExternal.cmake
+@@ -0,0 +1,8 @@
++include(ExternalGoogleTest)
++include(ExternalMagic_Enum)
++include(ExternalCppConsoleTable)
++include(ExternalCXXProperties)
++include(ExternalCPPItertools)
++include(ExternalNlohmannJSON)
++include(Externaltqdm-cpp)
++include(ExternalHOHashlibpp)
+\ No newline at end of file
+diff --git a/cmake/JPLMTests.cmake b/cmake/JPLMTests.cmake
+index c5ac59bc..2aa1d2ee 100644
+--- a/cmake/JPLMTests.cmake
++++ b/cmake/JPLMTests.cmake
+@@ -12,4 +12,26 @@ function(add_jplm_test TEST_NAME TEST_BIN_NAME TEST_SOURCE LIB_NAMES)
+ 	    RUNTIME_OUTPUT_DIRECTORY "${JPLM_TESTS_PATH}"
+ 	)
+ 	add_test(${TEST_NAME} ${JPLM_TESTS_PATH}/${TEST_BIN_NAME} "${CMAKE_HOME_DIRECTORY}/resources")
+-endfunction()
+\ No newline at end of file
++endfunction()
++
++
++
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Utils/Image/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Utils/Stream/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/ThirdParty/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/Generic/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Boxes/Parsers/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Common/Boxes/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Encoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Decoder/Boxes/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part1/Decoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/Boxes)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Decoder/Boxes)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Decoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Common/Encoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Encoder/)
++add_subdirectory(${CMAKE_HOME_DIRECTORY}/source/Tests/Part2/Common/TransformMode/)
+\ No newline at end of file
+diff --git a/doc/diagrams/libs b/doc/diagrams/libs
+new file mode 100644
+index 00000000..b88a24b4
+--- /dev/null
++++ b/doc/diagrams/libs
+@@ -0,0 +1,182 @@
++<mxfile host="app.diagrams.net" modified="2023-03-26T19:11:16.703Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36" etag="PO7wfw1cTqChBnlEtm3E" version="21.1.1" type="device">
++  <diagram name="Página-1" id="MoAjkS8RZY177OqdkIyi">
++    <mxGraphModel dx="3267" dy="2104" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
++      <root>
++        <mxCell id="0" />
++        <mxCell id="1" parent="0" />
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-1" target="eWVg_2c0nl1ib9aChdH3-6">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-1" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_common&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="460" y="90" width="170" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-2" target="eWVg_2c0nl1ib9aChdH3-1">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="400" y="200" />
++              <mxPoint x="545" y="200" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.174;exitY=0.043;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-2" target="eWVg_2c0nl1ib9aChdH3-29">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="328" y="395" />
++              <mxPoint x="150" y="395" />
++              <mxPoint x="150" y="205" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-2" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_common_boxes&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="303" y="470" width="220" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.81;entryY=1.024;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-3" target="eWVg_2c0nl1ib9aChdH3-1">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-59" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.236;entryY=1.122;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-3" target="eWVg_2c0nl1ib9aChdH3-25">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-3" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part1_common&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="580" y="275" width="170" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-6" target="eWVg_2c0nl1ib9aChdH3-31">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.49;entryY=1.119;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-6" target="eWVg_2c0nl1ib9aChdH3-41">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-6" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_common_transform_mode&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="400" y="30" width="290" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-12" target="eWVg_2c0nl1ib9aChdH3-22">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-12" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_common_boxes_decoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="870" y="650" width="230" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-15" target="eWVg_2c0nl1ib9aChdH3-12">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-15" target="eWVg_2c0nl1ib9aChdH3-2">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-57" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-15" target="eWVg_2c0nl1ib9aChdH3-19">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="600" y="540" />
++              <mxPoint x="665" y="540" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-15" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_common_boxes_generic&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="420" y="710" width="230" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.59;entryY=1.119;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-17" target="eWVg_2c0nl1ib9aChdH3-15">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-17" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;&lt;div style=&quot;line-height: 19px;&quot;&gt;jplm_box_model&lt;/div&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="570" y="840" width="140" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-19" target="eWVg_2c0nl1ib9aChdH3-3">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.19;entryY=0.984;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-19" target="eWVg_2c0nl1ib9aChdH3-22">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-19" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part1_common_boxes&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="555" y="470" width="220" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-60" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.752;entryY=1.004;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-22" target="eWVg_2c0nl1ib9aChdH3-25">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.519;entryY=0.984;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-22" target="eWVg_2c0nl1ib9aChdH3-29">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1.016;entryY=0.631;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1.026;exitY=0.612;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-22" target="eWVg_2c0nl1ib9aChdH3-12">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="1270" y="458" />
++              <mxPoint x="1270" y="669" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-22" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part1_boxes_decoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="870" y="440" width="230" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.433;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-25" target="eWVg_2c0nl1ib9aChdH3-33">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="930" y="-197" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-25" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part1_decoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="850" y="90" width="180" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.466;entryY=1.102;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-29" target="eWVg_2c0nl1ib9aChdH3-33">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.023;entryY=0.475;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-29" target="eWVg_2c0nl1ib9aChdH3-12">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="-140" y="205" />
++              <mxPoint x="-140" y="664" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-29" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_boxes_decoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="-110" y="190" width="230" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-31" target="eWVg_2c0nl1ib9aChdH3-33">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="200" y="-115" />
++              <mxPoint x="40" y="-115" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-31" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_decoder_transform_mode&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="50" y="-50" width="300" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-33" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_decoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="-85" y="-210" width="180" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.467;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-36" target="eWVg_2c0nl1ib9aChdH3-33">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="-515" y="-196" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-36" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_decoder_prediction_mode&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="-670" y="-70" width="310" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-39" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_encoder&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="1090" y="-220" width="180" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.31;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.539;exitY=-0.071;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-40" target="eWVg_2c0nl1ib9aChdH3-39">
++          <mxGeometry relative="1" as="geometry">
++            <Array as="points">
++              <mxPoint x="1557" y="-211" />
++            </Array>
++          </mxGeometry>
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-40" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_encoder_prediction_mode&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="1390" y="-70" width="310" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-41" target="eWVg_2c0nl1ib9aChdH3-39">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-41" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_part2_encoder_transform_mode&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="1030" y="-70" width="300" height="30" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="eWVg_2c0nl1ib9aChdH3-50" target="eWVg_2c0nl1ib9aChdH3-15">
++          <mxGeometry relative="1" as="geometry" />
++        </mxCell>
++        <mxCell id="eWVg_2c0nl1ib9aChdH3-50" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: &amp;quot;Droid Sans Mono&amp;quot;, &amp;quot;monospace&amp;quot;, monospace; font-size: 14px; line-height: 19px;&quot;&gt;jplm_utils_stream&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
++          <mxGeometry x="360" y="840" width="170" height="30" as="geometry" />
++        </mxCell>
++      </root>
++    </mxGraphModel>
++  </diagram>
++</mxfile>
+diff --git a/source/.gitignore b/source/.gitignore
+new file mode 100644
+index 00000000..a1582cdc
+--- /dev/null
++++ b/source/.gitignore
+@@ -0,0 +1 @@
++JPLMConfig.h
+\ No newline at end of file
+diff --git a/source/App/Decoder/CMakeLists.txt b/source/App/Decoder/CMakeLists.txt
+new file mode 100644
+index 00000000..edeebe74
+--- /dev/null
++++ b/source/App/Decoder/CMakeLists.txt
+@@ -0,0 +1,8 @@
++add_executable(jpl-decoder-bin jpl-decoder.cpp)
++
++target_link_libraries(jpl-decoder-bin PRIVATE 
++                                jplm_common 
++                                jplm_common_decoder 
++                                jplm_part2_decoder 
++                                jplm_utils_stats
++                     )
+\ No newline at end of file
+diff --git a/source/App/Decoder/jpl-decoder.cpp b/source/App/Decoder/jpl-decoder.cpp
+index acc058c2..7ee905d6 100644
+--- a/source/App/Decoder/jpl-decoder.cpp
++++ b/source/App/Decoder/jpl-decoder.cpp
+@@ -40,7 +40,7 @@
+ 
+ #include <cstdlib>
+ #include <string>
+-#include "Lib/Common/JPLMCodecFactory.h"
++#include "Lib/Common/Decoder/JPLMDecoderFactory.h"
+ #include "Lib/Common/JPLMConfigurationFactory.h"
+ #include "Lib/Part1/Decoder/JPLFileFromStream.h"
+ #include "Lib/Utils/Stats/RunTimeStatistics.h"
+@@ -60,7 +60,7 @@ int main(int argc, char const* argv[]) {
+   auto jpl_file =
+       std::make_shared<JPLFileFromStream>(configuration->get_input_filename());
+ 
+-  auto decoders = JPLMCodecFactory::get_decoders(
++  auto decoders = JPLMDecoderFactory::get_decoders(
+       jpl_file, configuration->get_output_filename(), configuration);
+   for (auto& decoder : decoders) {
+     decoder->run();
+diff --git a/source/App/Encoder/CMakeLists.txt b/source/App/Encoder/CMakeLists.txt
+new file mode 100644
+index 00000000..de8ce8f8
+--- /dev/null
++++ b/source/App/Encoder/CMakeLists.txt
+@@ -0,0 +1,7 @@
++add_executable(jpl-encoder-bin jpl-encoder.cpp)
++
++target_link_libraries(jpl-encoder-bin PRIVATE 
++                                jplm_common_encoder
++                                jplm_part2_encoder 
++                                jplm_utils_stats
++                     )
+\ No newline at end of file
+diff --git a/source/App/Encoder/jpl-encoder.cpp b/source/App/Encoder/jpl-encoder.cpp
+index 2954e058..36b3d7d7 100644
+--- a/source/App/Encoder/jpl-encoder.cpp
++++ b/source/App/Encoder/jpl-encoder.cpp
+@@ -41,7 +41,7 @@
+ 
+ #include <cstdlib>
+ #include <string>
+-#include "Lib/Common/JPLMCodecFactory.h"
++#include "Lib/Common/Encoder/JPLMEncoderFactory.h"
+ #include "Lib/Common/JPLMConfigurationFactory.h"
+ #include "Lib/Utils/Stats/EncoderRunTimeStatistics.h"
+ 
+@@ -60,9 +60,7 @@ int main(int argc, char const* argv[]) {
+   auto show_statistics = configuration->show_runtime_statistics();
+   auto run_time_statistics = EncoderRunTimeStatistics(of_stream);
+ 
+-  //<! \todo avoid the static cast as the get_encoder_configuration function
+-  // should return an specialized encoder configuration
+-  auto encoder = JPLMCodecFactory::get_encoder(configuration);
++  auto encoder = JPLMEncoderFactory::get_encoder(configuration);
+ 
+   encoder->run();
+ 
+diff --git a/source/App/Utils/CMakeLists.txt b/source/App/Utils/CMakeLists.txt
+index 0f518e58..1bd16cee 100644
+--- a/source/App/Utils/CMakeLists.txt
++++ b/source/App/Utils/CMakeLists.txt
+@@ -15,34 +15,34 @@ endfunction()
+ 
+ add_jplm_util(
+         lightfield_coordinate_shift LightFieldViewCoordinateChange.cpp
+-        "image;jplm_part2_common;basic_configuration")
++        "jplm_utils_image;jplm_part2_common;jplm_utils_basic_configuration")
+ 
+ add_jplm_util(lenslet_13x13_shifter Lenslet13x13Shifter.cpp
+-        "image;stream;basic_configuration")
++        "jplm_utils_image;jplm_utils_stream;jplm_utils_basic_configuration")
+ 
+ 
+ add_jplm_util(
+         compute_psnr ComputePSNR.cpp
+-        "image;stream;basic_configuration")
++        "jplm_utils_image;jplm_utils_stream;jplm_utils_basic_configuration")
+ 
+ add_jplm_util(
+         compute_lightfield_quality_metrics ComputeLightFieldQualityMetrics.cpp
+-        "image;stream;jplm_part2_common;basic_configuration")
++        "jplm_utils_image;jplm_utils_stream;jplm_part2_common;jplm_utils_basic_configuration")
+ 
+ add_jplm_util(convert_ppm_to_pgx PPMToPGX.cpp
+-        "image;stream;basic_configuration")
++        "jplm_utils_image;jplm_utils_stream;jplm_utils_basic_configuration")
+ 
+ add_jplm_util(convert_pgx_to_ppm
+         PGXToPPM.cpp
+-        "image;stream;basic_configuration")
++        "jplm_utils_image;jplm_utils_stream;jplm_utils_basic_configuration")
+ 
+ add_jplm_util(jplm_info
+         JPLMInfo.cpp
+-        "image;stream;basic_configuration;jplm_common;jplm_part1_common;jplm_part1_common_boxes;jplm_part1_decoder;jplm_part2_common;jplm_part2_decoder;jplm_part2_boxes_decoder;jplm_part2_common_boxes;jplm_part2_decoder_transform_mode;jplm_utils_stats")
++        "jplm_utils_image;jplm_utils_stream;jplm_utils_basic_configuration;jplm_common;jplm_part1_common;jplm_part1_common_boxes;jplm_part1_decoder;jplm_part2_common;jplm_part2_decoder;jplm_part2_boxes_decoder;jplm_part2_common_boxes;jplm_part2_decoder_transform_mode;jplm_utils_stats")
+ 
+ 
+ if (VISUALIZATION_TOOL)
+     add_jplm_util(
+             lightfield_visualizer LightfieldVisualization.cpp
+-            "image;stream;jplm_part2_common;basic_configuration;X11")
++            "jplm_utils_image;jplm_utils_stream;jplm_part2_common;jplm_utils_basic_configuration;X11")
+ endif (VISUALIZATION_TOOL)
+\ No newline at end of file
+diff --git a/source/Lib/Common/Boxes/CMakeLists.txt b/source/Lib/Common/Boxes/CMakeLists.txt
+index 38a99e9c..992ec066 100644
+--- a/source/Lib/Common/Boxes/CMakeLists.txt
++++ b/source/Lib/Common/Boxes/CMakeLists.txt
+@@ -1,2 +1,5 @@
+-set(COMMON_BOXES_SOURCES Box.cpp InFileDBox.cpp InMemoryDBox.cpp EmptyDBox.cpp)
+-add_library(jplm_common_boxes ${COMMON_BOXES_SOURCES})
+\ No newline at end of file
++file(GLOB COMMON_BOXES_SOURCES "*.cpp")
++
++add_library(jplm_box_model ${COMMON_BOXES_SOURCES})
++
++## library jplm_box_model
+\ No newline at end of file
+diff --git a/source/Lib/Common/Boxes/Generic/BitsPerComponentBox.h b/source/Lib/Common/Boxes/Generic/BitsPerComponentBox.h
+index a88ff292..de5b615e 100644
+--- a/source/Lib/Common/Boxes/Generic/BitsPerComponentBox.h
++++ b/source/Lib/Common/Boxes/Generic/BitsPerComponentBox.h
+@@ -41,7 +41,7 @@
+ #ifndef JPLM_LIB_COMMON_BOXES_GENERIC_BITSPERCOMPONENTBOX_H__
+ #define JPLM_LIB_COMMON_BOXES_GENERIC_BITSPERCOMPONENTBOX_H__
+ 
+-#include "Lib/Common/Boxes/Generic/CharArrayContents.h"
++#include "CharArrayContents.h"
+ #include "Lib/Common/Boxes/GenericBox.h"
+ 
+ /**
+diff --git a/source/Lib/Common/Boxes/Generic/CMakeLists.txt b/source/Lib/Common/Boxes/Generic/CMakeLists.txt
+index 9ce0ce4a..e68fa853 100644
+--- a/source/Lib/Common/Boxes/Generic/CMakeLists.txt
++++ b/source/Lib/Common/Boxes/Generic/CMakeLists.txt
+@@ -1,32 +1,7 @@
+-set(COMMON_BOXES_GENERIC_SOURCES
+-    BitsPerComponentBox.cpp
+-    ChannelDefinitionBox.cpp
+-    ChannelDefinitionContents.cpp
+-    ChannelDescription.cpp
+-    CharArrayContents.cpp
+-    ColourSpecificationBox.cpp
+-    ColourSpecificationContents.cpp
+-    CompressionType.cpp
+-    CompressionTypeImage.cpp
+-    ContiguousCodestreamBox.cpp
+-    ContiguousCodestreamCode.cpp
+-    ContiguousCodestreamCodeInMemory.cpp
+-    ContiguousCodestreamContents.cpp
+-    DataEntryURLBox.cpp
+-    DataEntryURLContents.cpp
+-    EnumCS.cpp
+-    ImageHeaderBox.cpp
+-    ImageHeaderContents.cpp
+-    IntellectualPropertyBox.cpp
+-    UndefinedContents.cpp
+-    UniversalUniqueIdentifier.cpp
+-    UUIDBox.cpp
+-    UUIDContents.cpp
+-    UUIDInfoBox.cpp
+-    UUIDInfoContents.cpp
+-    UUIDListBox.cpp
+-    UUIDListContents.cpp
+-    XMLContents.cpp
+-    XMLBox.cpp)
++file(GLOB COMMON_BOXES_GENERIC_SOURCES "*.cpp")
+ 
+-add_library(jplm_common_boxes_generic ${COMMON_BOXES_GENERIC_SOURCES})
+\ No newline at end of file
++add_library(jplm_common_boxes_generic ${COMMON_BOXES_GENERIC_SOURCES})
++
++target_link_libraries(jplm_common_boxes_generic PUBLIC jplm_box_model jplm_utils_stream)
++
++# jplm_utils_stream is needed by CameraParameterContents
+\ No newline at end of file
+diff --git a/source/Lib/Common/Boxes/Generic/ChannelDefinitionBox.h b/source/Lib/Common/Boxes/Generic/ChannelDefinitionBox.h
+index c26da81a..0dd45504 100644
+--- a/source/Lib/Common/Boxes/Generic/ChannelDefinitionBox.h
++++ b/source/Lib/Common/Boxes/Generic/ChannelDefinitionBox.h
+@@ -41,8 +41,8 @@
+ #ifndef JPLM_LIB_COMMON_BOXES_GENERIC_CHANNELDEFINITIONBOX_H__
+ #define JPLM_LIB_COMMON_BOXES_GENERIC_CHANNELDEFINITIONBOX_H__
+ 
+-#include "Lib/Common/Boxes/Generic/ChannelDefinitionContents.h"
+ #include "Lib/Common/Boxes/GenericBox.h"
++#include "ChannelDefinitionContents.h"
+ 
+ /**
+  * \ingroup DefinedBoxes
+diff --git a/source/Lib/Common/Boxes/Generic/ChannelDefinitionContents.h b/source/Lib/Common/Boxes/Generic/ChannelDefinitionContents.h
+index 340943a7..4ea8bd83 100644
+--- a/source/Lib/Common/Boxes/Generic/ChannelDefinitionContents.h
++++ b/source/Lib/Common/Boxes/Generic/ChannelDefinitionContents.h
+@@ -41,7 +41,7 @@
+ #ifndef JPLM_LIB_COMMON_BOXES_GENERIC_CHANNELDEFINITIONCONTENTS_H__
+ #define JPLM_LIB_COMMON_BOXES_GENERIC_CHANNELDEFINITIONCONTENTS_H__
+ 
+-#include "Lib/Common/Boxes/Generic/ChannelDescription.h"
++#include "ChannelDescription.h"
+ #include "Lib/Common/Boxes/InMemoryDBox.h"
+ 
+ /**
+diff --git a/source/Lib/Common/Boxes/Generic/ColourSpecificationBox.h b/source/Lib/Common/Boxes/Generic/ColourSpecificationBox.h
+index 34c0df90..6d11da75 100644
+--- a/source/Lib/Common/Boxes/Generic/ColourSpecificationBox.h
++++ b/source/Lib/Common/Boxes/Generic/ColourSpecificationBox.h
+@@ -41,7 +41,7 @@
+ #ifndef JPLM_LIB_COMMON_BOXES_GENERIC_COLOURSPECIFICATIONBOX_H__
+ #define JPLM_LIB_COMMON_BOXES_GENERIC_COLOURSPECIFICATIONBOX_H__
+ 
+-#include "Lib/Common/Boxes/Generic/ColourSpecificationContents.h"
++#include "ColourSpecificationContents.h"
+ #include "Lib/Common/Boxes/GenericBox.h"
+ 
+ /**
+diff --git a/source/Lib/Common/Boxes/Generic/ColourSpecificationContents.h b/source/Lib/Common/Boxes/Generic/ColourSpecificationContents.h
+index 082d8184..41cc5c7f 100644
+--- a/source/Lib/Common/Boxes/Generic/ColourSpecificationContents.h
++++ b/source/Lib/Common/Boxes/Generic/ColourSpecificationContents.h
+@@ -45,10 +45,10 @@
+ #include <optional>
+ #include <tuple>  //std::tie
+ #include <variant>
+-#include "Lib/Common/Boxes/Generic/EnumCS.h"
++#include "Lib/Utils/Stream/BinaryTools.h"
+ #include "Lib/Common/Boxes/GenericBox.h"
+ #include "Lib/Common/Boxes/InMemoryDBox.h"
+-#include "Lib/Utils/Stream/BinaryTools.h"
++#include "EnumCS.h"
+ 
+ 
+ /**
+diff --git a/source/Lib/Common/Boxes/Parsers/CMakeLists.txt b/source/Lib/Common/Boxes/Parsers/CMakeLists.txt
+deleted file mode 100644
+index a07243bf..00000000
+--- a/source/Lib/Common/Boxes/Parsers/CMakeLists.txt
++++ /dev/null
+@@ -1,20 +0,0 @@
+-set(COMMON_BOXES_PARSERS_SOURCES
+-    ColourSpecificationBoxParser.cpp
+-    ContiguousCodestreamBoxParser.cpp
+-    XMLBoxParser.cpp
+-    ImageHeaderBoxParser.cpp
+-    BoxParserRegistry.cpp
+-    BoxParserHelperBase.cpp
+-    BoxParserHelper.cpp
+-    ../../../Part2/Decoder/Boxes/ProfileAndLevelBoxParser.cpp)
+-
+-add_library(jplm_common_boxes_parsers ${COMMON_BOXES_PARSERS_SOURCES})
+-
+-target_link_libraries(jplm_common_boxes_parsers
+-    jplm_common_boxes_generic
+-    jplm_common_boxes
+-    jplm_part2_common
+-    jplm_part2_boxes_decoder
+-    jplm_part1_boxes_decoder
+-    jplm_part2_common_boxes
+-    jplm_part1_decoder)
+\ No newline at end of file
+diff --git a/source/Lib/Common/CMakeLists.txt b/source/Lib/Common/CMakeLists.txt
+index 2bd29dd5..6bb5a87e 100644
+--- a/source/Lib/Common/CMakeLists.txt
++++ b/source/Lib/Common/CMakeLists.txt
+@@ -1,27 +1,8 @@
+-set(COMMON_SOURCES JPLMCodecFactory.cpp
+-    JPLMConfiguration.cpp
+-    JPLMEncoderConfigurationLightField.cpp
+-    JPLMEncoderConfigurationLightField4DTransformMode.cpp
+-    JPLMEncoderConfigurationLightField4DPredictionMode.cpp
+-    JPLMEncoderConfiguration.cpp
+-    JPLMDecoderConfiguration.cpp
+-    JPLMConfigurationFactory.cpp
+-    Boxes/Box.cpp)
++file(GLOB COMMON_SOURCES "*.cpp")
+ 
+-set(PART1_SOURCES
+-    ../Part1/Common/JPLFile.cpp
+-    ../Part1/Common/CatalogGenerator.cpp)
++add_library(jplm_common ${COMMON_SOURCES} ${PART2_SOURCES})
+ 
+-set(PART2_SOURCES
+-    ../Part2/Encoder/TransformMode/Hierarchical4DEncoder.cpp
+-    ../Part2/Encoder/TransformMode/TransformPartition.cpp
+-    ../Part2/Encoder/TransformMode/ABACEncoder.cpp
+-    ../Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.cpp
+-    ../Part2/Decoder/TransformMode/PartitionDecoder.cpp
+-    ../Part2/Decoder/TransformMode/Hierarchical4DDecoder.cpp
+-    ../Part2/Decoder/TransformMode/JPLM4DTransformModeLightFieldDecoder.cpp
+-    ../Part2/Decoder/TransformMode/CodestreamPointerSetMarkerSegmentParser.cpp
+-    ../Part2/Decoder/TransformMode/ABACDecoder.cpp)
+ 
+-add_library(jplm_common ${COMMON_SOURCES} ${PART1_SOURCES} ${PART2_SOURCES})
+-target_link_libraries(jplm_common basic_configuration jplm_part2_common_transform_mode image)
++target_link_libraries(jplm_common PUBLIC 
++                        jplm_utils_basic_configuration
++                     )
+\ No newline at end of file
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserHelper.cpp b/source/Lib/Common/Decoder/Boxes/BoxParserHelper.cpp
+similarity index 97%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserHelper.cpp
+rename to source/Lib/Common/Decoder/Boxes/BoxParserHelper.cpp
+index 1e970919..4a1b5436 100644
+--- a/source/Lib/Common/Boxes/Parsers/BoxParserHelper.cpp
++++ b/source/Lib/Common/Decoder/Boxes/BoxParserHelper.cpp
+@@ -38,4 +38,4 @@
+  *  \date     2020-02-06
+  */
+ 
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "BoxParserHelper.h"
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserHelper.h b/source/Lib/Common/Decoder/Boxes/BoxParserHelper.h
+similarity index 95%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserHelper.h
+rename to source/Lib/Common/Decoder/Boxes/BoxParserHelper.h
+index 312039ad..53be4699 100644
+--- a/source/Lib/Common/Boxes/Parsers/BoxParserHelper.h
++++ b/source/Lib/Common/Decoder/Boxes/BoxParserHelper.h
+@@ -43,8 +43,8 @@
+ 
+ #include "Lib/Utils/Stream/BinaryTools.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelperBase.h"
+-#include "Lib/Common/Boxes/Parsers/CommonExceptions.h"
++#include "BoxParserHelperBase.h"
++#include "CommonExceptions.h"
+ 
+ 
+ template<class ParsingBox, bool required=true>
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.cpp b/source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.cpp
+similarity index 98%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.cpp
+rename to source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.cpp
+index 41783180..fa3bfcc1 100644
+--- a/source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.cpp
++++ b/source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.cpp
+@@ -39,7 +39,7 @@
+  *  \date     2020-02-06
+  */
+ 
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelperBase.h"
++#include "BoxParserHelperBase.h"
+ 
+ 
+ uint32_t BoxParserHelperBase::get_l_box_value_from_stream() {
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.h b/source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.h
+similarity index 91%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.h
+rename to source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.h
+index 82b742a6..5720ab88 100644
+--- a/source/Lib/Common/Boxes/Parsers/BoxParserHelperBase.h
++++ b/source/Lib/Common/Decoder/Boxes/BoxParserHelperBase.h
+@@ -43,7 +43,7 @@
+ 
+ 
+ #include <cstdint>
+-#include "Lib/Utils//Stream/BinaryTools.h"
++#include "Lib/Utils/Stream/BinaryTools.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ 
+ class BoxParserHelperBase {
+@@ -212,27 +212,6 @@ class BoxParserHelperBase {
+   std::enable_if_t<(sizeof...(Args) > 1), std::tuple<Args...>> get_next();
+ 
+ 
+-  // template<class BoxToParse>
+-  // std::unique_ptr<BoxToParse> get_next_box() {
+-  //     auto managed_substream = managed_stream.get_remaining_sub_managed_stream();
+-  //     auto box_parser_helper = BoxParserHelperBase(managed_substream);
+-  //     if(!box_parser_helper.is_a_box_with_id(BoxToParse::id)) {
+-  //       managed_substream.rewind();
+-  //       return nullptr;
+-  //     }
+-  //     return BoxParserRegistry::get_instance().parse<BoxToParse>(managed_substream);
+-  // }
+-
+-  // template<class NextParsingBox>
+-  // bool is_next_a_box() {
+-  //   auto current_pos = managed_stream.get_current_pos();
+-  //   if(!managed_stream.is_valid(current_pos+8)) {
+-  //     return false;
+-  //   }
+-
+-  // }
+-
+-
+   /**
+     * @brief      Determines whether the specified identifier is a box with identifier.
+     *
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserRegistry.cpp b/source/Lib/Common/Decoder/Boxes/BoxParserRegistry.cpp
+similarity index 100%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserRegistry.cpp
+rename to source/Lib/Common/Decoder/Boxes/BoxParserRegistry.cpp
+diff --git a/source/Lib/Common/Boxes/Parsers/BoxParserRegistry.h b/source/Lib/Common/Decoder/Boxes/BoxParserRegistry.h
+similarity index 95%
+rename from source/Lib/Common/Boxes/Parsers/BoxParserRegistry.h
+rename to source/Lib/Common/Decoder/Boxes/BoxParserRegistry.h
+index f9f2ca86..0cc399a6 100644
+--- a/source/Lib/Common/Boxes/Parsers/BoxParserRegistry.h
++++ b/source/Lib/Common/Decoder/Boxes/BoxParserRegistry.h
+@@ -49,10 +49,10 @@
+ #include <map>
+ #include <memory>
+ #include "Lib/Common/Boxes/Box.h"
+-#include "Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.h"
+-#include "Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.h"
+-#include "Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.h"
+-#include "Lib/Common/Boxes/Parsers/XMLBoxParser.h"
++#include "ColourSpecificationBoxParser.h"
++#include "ContiguousCodestreamBoxParser.h"
++#include "ImageHeaderBoxParser.h"
++#include "XMLBoxParser.h"
+ #include "Lib/Part1/Decoder/Boxes/FileTypeBoxParser.h"
+ #include "Lib/Part1/Decoder/Boxes/JpegPlenoThumbnailBoxParser.h"
+ //! [Include the parser header]
+@@ -186,11 +186,11 @@ std::unique_ptr<ParsingBox> BoxParserRegistry::parse(
+   \subsection subsection2 Registering the parser
+   Include the parser header in the BoxParserRegistry header: 
+ 
+-  \snippet Lib/Common/Boxes/Parsers/BoxParserRegistry.h Include the parser header
++  \snippet Lib/Common/Decoder/Boxes/BoxParserRegistry.h Include the parser header
+ 
+   Finally, to allow this parser to be used during decoding, it is necessary to make it visible.
+   To do so, it is only necessary to include a line in BoxParserRegistry::register_known_parsers() implementation: 
+-  \snippet Lib/Common/Boxes/Parsers/BoxParserRegistry.cpp Registering the parser
++  \snippet Lib/Common/Decoder/Boxes/BoxParserRegistry.cpp Registering the parser
+ 
+   By doing so, the JpegPlenoSignatureBoxParser parse method will be used whenever a JpegPlenoSignatureBox is found in the bitstream;
+ */
+diff --git a/source/Lib/Common/Decoder/Boxes/CMakeLists.txt b/source/Lib/Common/Decoder/Boxes/CMakeLists.txt
+new file mode 100644
+index 00000000..a0688a5c
+--- /dev/null
++++ b/source/Lib/Common/Decoder/Boxes/CMakeLists.txt
+@@ -0,0 +1,12 @@
++file(GLOB COMMON_BOXES_PARSERS_SOURCES "*.cpp")
++
++add_library(jplm_common_boxes_decoder ${COMMON_BOXES_PARSERS_SOURCES})
++
++## todo: check this to make sure it is the way to go (including specific libs here)
++# currently it is this way because the BoxRegistry. Ideally we need to change the BoxRegistry
++target_link_libraries(jplm_common_boxes_decoder PUBLIC
++    jplm_common_boxes_generic
++    jplm_part1_boxes_decoder
++    jplm_part2_boxes_decoder)
++
++     
+\ No newline at end of file
+diff --git a/source/Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.cpp b/source/Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.cpp
+similarity index 100%
+rename from source/Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.cpp
+rename to source/Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.cpp
+diff --git a/source/Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.h b/source/Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.h
+similarity index 94%
+rename from source/Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.h
+rename to source/Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.h
+index 2a5420ec..4a4aa705 100644
+--- a/source/Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.h
++++ b/source/Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.h
+@@ -43,8 +43,8 @@
+ 
+ #include <memory>
+ #include "Lib/Common/Boxes/Generic/ColourSpecificationBox.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "BoxParserHelper.h"
++#include "BoxParserRegistry.h"
+ 
+ namespace JPLMBoxParser {
+ class ColourSpecificationBoxParser {
+diff --git a/source/Lib/Common/Boxes/Parsers/CommonExceptions.cpp b/source/Lib/Common/Decoder/Boxes/CommonExceptions.cpp
+similarity index 97%
+rename from source/Lib/Common/Boxes/Parsers/CommonExceptions.cpp
+rename to source/Lib/Common/Decoder/Boxes/CommonExceptions.cpp
+index 16b69d31..3e9759c8 100644
+--- a/source/Lib/Common/Boxes/Parsers/CommonExceptions.cpp
++++ b/source/Lib/Common/Decoder/Boxes/CommonExceptions.cpp
+@@ -38,4 +38,4 @@
+  *  \date     2020-02-06
+  */
+ 
+-#include "Lib/Common/Boxes/Parsers/CommonExceptions.h"
++#include "CommonExceptions.h"
+diff --git a/source/Lib/Common/Boxes/Parsers/CommonExceptions.h b/source/Lib/Common/Decoder/Boxes/CommonExceptions.h
+similarity index 100%
+rename from source/Lib/Common/Boxes/Parsers/CommonExceptions.h
+rename to source/Lib/Common/Decoder/Boxes/CommonExceptions.h
+diff --git a/source/Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.cpp b/source/Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.cpp
+similarity index 100%
+rename from source/Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.cpp
+rename to source/Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.cpp
+diff --git a/source/Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.h b/source/Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.h
+similarity index 95%
+rename from source/Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.h
+rename to source/Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.h
+index 07ee7302..8d621d7d 100644
+--- a/source/Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.h
++++ b/source/Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.h
+@@ -44,8 +44,8 @@
+ #include <memory>
+ #include "Lib/Common/Boxes/Generic/ContiguousCodestreamBox.h"
+ #include "Lib/Common/Boxes/Generic/ContiguousCodestreamCodeInMemory.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "BoxParserHelper.h"
++#include "BoxParserRegistry.h"
+ 
+ namespace JPLMBoxParser {
+ class ContiguousCodestreamBoxParser {
+diff --git a/source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.cpp b/source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.cpp
+similarity index 97%
+rename from source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.cpp
+rename to source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.cpp
+index d0f8cdb3..5cf66c59 100644
+--- a/source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.cpp
++++ b/source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.cpp
+@@ -38,7 +38,7 @@
+  *  \date     2020-03-24
+  */
+ 
+-#include "Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.h"
++#include "ImageHeaderBoxParser.h"
+ 
+ 
+ std::unique_ptr<Box> JPLMBoxParser::ImageHeaderBoxParser::parse(
+diff --git a/source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.h b/source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.h
+similarity index 94%
+rename from source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.h
+rename to source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.h
+index de19a91d..639e0d95 100644
+--- a/source/Lib/Common/Boxes/Parsers/ImageHeaderBoxParser.h
++++ b/source/Lib/Common/Decoder/Boxes/ImageHeaderBoxParser.h
+@@ -42,9 +42,9 @@
+ #define IMAGE_HEADER_BOX_PARSER_H
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-// #include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
+ #include <magic_enum.hpp>
++
++#include "BoxParserHelper.h"
+ #include "Lib/Common/Boxes/Generic/ImageHeaderBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Common/Boxes/Parsers/XMLBoxParser.cpp b/source/Lib/Common/Decoder/Boxes/XMLBoxParser.cpp
+similarity index 97%
+rename from source/Lib/Common/Boxes/Parsers/XMLBoxParser.cpp
+rename to source/Lib/Common/Decoder/Boxes/XMLBoxParser.cpp
+index 8290146d..5fdb9e3c 100644
+--- a/source/Lib/Common/Boxes/Parsers/XMLBoxParser.cpp
++++ b/source/Lib/Common/Decoder/Boxes/XMLBoxParser.cpp
+@@ -38,7 +38,7 @@
+  *  \date     2020-03-23
+  */
+ 
+-#include "Lib/Common/Boxes/Parsers/XMLBoxParser.h"
++#include "XMLBoxParser.h"
+ 
+ std::unique_ptr<Box> JPLMBoxParser::XMLBoxParser::parse(
+     BoxParserHelperBase& box_parser_helper) {
+diff --git a/source/Lib/Common/Boxes/Parsers/XMLBoxParser.h b/source/Lib/Common/Decoder/Boxes/XMLBoxParser.h
+similarity index 95%
+rename from source/Lib/Common/Boxes/Parsers/XMLBoxParser.h
+rename to source/Lib/Common/Decoder/Boxes/XMLBoxParser.h
+index b24099bf..1e0999d3 100644
+--- a/source/Lib/Common/Boxes/Parsers/XMLBoxParser.h
++++ b/source/Lib/Common/Decoder/Boxes/XMLBoxParser.h
+@@ -43,7 +43,7 @@
+ 
+ #include <memory>
+ #include "Lib/Common/Boxes/Generic/XMLBox.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "BoxParserHelper.h"
+ 
+ namespace JPLMBoxParser {
+ class XMLBoxParser {
+diff --git a/source/Lib/Common/Decoder/CMakeLists.txt b/source/Lib/Common/Decoder/CMakeLists.txt
+new file mode 100644
+index 00000000..751a805c
+--- /dev/null
++++ b/source/Lib/Common/Decoder/CMakeLists.txt
+@@ -0,0 +1,3 @@
++file(GLOB COMMON_DECODER_SOURCES "*.cpp")
++
++add_library(jplm_common_decoder ${COMMON_DECODER_SOURCES})
+\ No newline at end of file
+diff --git a/source/Lib/Common/JPLMCodecFactory.cpp b/source/Lib/Common/Decoder/JPLMDecoderFactory.cpp
+similarity index 70%
+rename from source/Lib/Common/JPLMCodecFactory.cpp
+rename to source/Lib/Common/Decoder/JPLMDecoderFactory.cpp
+index 5aacabaa..0cba8bc5 100644
+--- a/source/Lib/Common/JPLMCodecFactory.cpp
++++ b/source/Lib/Common/Decoder/JPLMDecoderFactory.cpp
+@@ -3,7 +3,7 @@
+  * and contributor rights, including patent rights, and no such rights are
+  * granted under this license.
+  *
+- * Copyright (c) 2010-2020, ITU/ISO/IEC
++ * Copyright (c) 2010-2024, ITU/ISO/IEC
+  * All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+@@ -31,87 +31,45 @@
+  * THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-/** \file     JPLMCodecFactory.cpp
++/** \file     JPLMDecoderFactory.cpp
+  *  \brief    
+  *  \details  
+- *  \author   Ismael Seidel <i.seidel@samsung.com>
+- *  \author   Pedro Garcia Freitas <pedro.gf@samsung.com>
+- *  \date     2020-02-05
++ *  \author   Ismael Seidel <ismael.seidel@ufsc.br>
++ *  \date     2024-01-31
+  */
+ 
+-#include "Lib/Common/JPLMCodecFactory.h"
+-#include <memory>
+-#include "JPLMEncoderConfigurationLightField.h"
+-#include "JPLMEncoderConfigurationLightField4DPredictionMode.h"
+-#include "JPLMEncoderConfigurationLightField4DTransformMode.h"
+-#include "Lib/Common/JPLMConfiguration.h"
+-#include "Lib/Part1/Common/JPLMCodec.h"
+-#include "Lib/Part2/Decoder/TransformMode/JPLM4DTransformModeLightFieldDecoder.h"
+-#include "Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h"
+-#include "Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h"
+-
+-
+-std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_light_field_encoder(
+-    std::shared_ptr<JPLMEncoderConfigurationLightField> configuration) {
+-  if (configuration->get_compression_type() ==
+-      CompressionTypeLightField::transform_mode) {
+-    return std::make_unique<JPLM4DTransformModeLightFieldEncoder<uint16_t>>(
+-        std::dynamic_pointer_cast<
+-            JPLMEncoderConfigurationLightField4DTransformMode>(configuration));
+-  }
+-
+-  assert(configuration->get_compression_type() ==
+-         CompressionTypeLightField::prediction_mode);
+-
+-  return std::make_unique<JPLM4DPredictionModeLightFieldEncoder<uint16_t>>(
+-      std::dynamic_pointer_cast<
+-          JPLMEncoderConfigurationLightField4DPredictionMode>(configuration));
+-}
++#include "Lib/Common/Decoder/JPLMDecoderFactory.h"
++#include "Lib/Common/CommonExceptions.h"
+ 
+-
+-std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_encoder(
+-    std::shared_ptr<JPLMEncoderConfiguration> configuration) {
+-  switch (configuration->get_jpeg_pleno_part()) {
+-    case JpegPlenoPart::LightField: {
+-      return get_light_field_encoder(
+-          std::dynamic_pointer_cast<JPLMEncoderConfigurationLightField>(
+-              configuration));
+-    }
+-    default: {
+-      std::cerr << "Unknown part" << std::endl;
+-      exit(EXIT_FAILURE);
+-    }
+-  }
+-
+-  return nullptr;
+-}
++#include "Lib/Part2/Common/Boxes/JpegPlenoLightFieldBox.h"
++#include "Lib/Part2/Decoder/TransformMode/JPLM4DTransformModeLightFieldDecoder.h"
+ 
+ 
+ // \todo after implementing the maybe_unused attributes MUST be removed
+-std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_hologram_decoder(
++std::unique_ptr<JPLMCodec> JPLMDecoderFactory::get_hologram_decoder(
+     [[maybe_unused]] std::shared_ptr<JPLFile> jpl_file,
+     [[maybe_unused]] const std::unique_ptr<JpegPlenoCodestreamBox> &codestream,
+     [[maybe_unused]] const std::string &output_filename,
+     [[maybe_unused]] std::shared_ptr<JPLMDecoderConfiguration> configuration) {
+   throw JPLMCommonExceptions::NotImplementedException(
+-      "JPLMCodecFactory::get_decoders(): "
++      "JPLMDecoderFactory::get_decoders(): "
+       "JpegPlenoCodestreamBoxTypes::Hologram");
+ }
+ 
+ 
+ // \todo after implementing the maybe_unused attributes MUST be removed
+-std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_point_cloud_decoder(
++std::unique_ptr<JPLMCodec> JPLMDecoderFactory::get_point_cloud_decoder(
+     [[maybe_unused]] std::shared_ptr<JPLFile> jpl_file,
+     [[maybe_unused]] const std::unique_ptr<JpegPlenoCodestreamBox> &codestream,
+     [[maybe_unused]] const std::string &output_filename,
+     [[maybe_unused]] std::shared_ptr<JPLMDecoderConfiguration> configuration) {
+   throw JPLMCommonExceptions::NotImplementedException(
+-      "JPLMCodecFactory::get_decoders(): "
++      "JPLMDecoderFactory::get_decoders(): "
+       "JpegPlenoCodestreamBoxTypes::PointCloud");
+ }
+ 
+ 
+-std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_lightfield_decoder(
++std::unique_ptr<JPLMCodec> JPLMDecoderFactory::get_lightfield_decoder(
+     std::shared_ptr<JPLFile> jpl_file,
+     const std::unique_ptr<JpegPlenoCodestreamBox> &codestream,
+     const std::string &output_filename,
+@@ -134,7 +92,7 @@ std::unique_ptr<JPLMCodec> JPLMCodecFactory::get_lightfield_decoder(
+ }
+ 
+ 
+-std::vector<std::unique_ptr<JPLMCodec>> JPLMCodecFactory::get_decoders(
++std::vector<std::unique_ptr<JPLMCodec>> JPLMDecoderFactory::get_decoders(
+     std::shared_ptr<JPLFile> jpl_file, const std::string &output_filename,
+     std::shared_ptr<JPLMDecoderConfiguration> configuration) {
+   if (!jpl_file->has_codestream()) {
+@@ -148,7 +106,7 @@ std::vector<std::unique_ptr<JPLMCodec>> JPLMCodecFactory::get_decoders(
+     switch (codestream->get_type()) {
+       case JpegPlenoCodestreamBoxTypes::LightField: {
+         try {
+-          decoders.push_back(JPLMCodecFactory::get_lightfield_decoder(
++          decoders.push_back(JPLMDecoderFactory::get_lightfield_decoder(
+               jpl_file, codestream, output_filename, configuration));
+         } catch (const std::exception &e) {
+           std::cerr
+@@ -160,7 +118,7 @@ std::vector<std::unique_ptr<JPLMCodec>> JPLMCodecFactory::get_decoders(
+       }
+       case JpegPlenoCodestreamBoxTypes::PointCloud: {
+         try {
+-          decoders.push_back(JPLMCodecFactory::get_point_cloud_decoder(
++          decoders.push_back(JPLMDecoderFactory::get_point_cloud_decoder(
+               jpl_file, codestream, output_filename, configuration));
+         } catch (const std::exception &e) {
+           std::cerr
+@@ -172,7 +130,7 @@ std::vector<std::unique_ptr<JPLMCodec>> JPLMCodecFactory::get_decoders(
+       }
+       case JpegPlenoCodestreamBoxTypes::Hologram: {
+         try {
+-          decoders.push_back(JPLMCodecFactory::get_hologram_decoder(
++          decoders.push_back(JPLMDecoderFactory::get_hologram_decoder(
+               jpl_file, codestream, output_filename, configuration));
+         } catch (const std::exception &e) {
+           std::cerr
+diff --git a/source/Lib/Common/JPLMCodecFactory.h b/source/Lib/Common/Decoder/JPLMDecoderFactory.h
+similarity index 81%
+rename from source/Lib/Common/JPLMCodecFactory.h
+rename to source/Lib/Common/Decoder/JPLMDecoderFactory.h
+index f36ab0c1..e29a4a73 100644
+--- a/source/Lib/Common/JPLMCodecFactory.h
++++ b/source/Lib/Common/Decoder/JPLMDecoderFactory.h
+@@ -31,48 +31,28 @@
+  * THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-/** \file     JPLMCodecFactory.h
++/** \file     JPLMDecoderFactory.h
+  *  \brief    
+  *  \details  
+- *  \author   Ismael Seidel <i.seidel@samsung.com>
+- *  \date     2019-09-11
++ *  \author   Ismael Seidel <ismael.seidel@ufsc.br>
++ *  \date     2024-01-31
+  */
+ 
+-#ifndef JPLMCODECFACTORY_H__
+-#define JPLMCODECFACTORY_H__
++#ifndef JPLMDECODERFACTORY_H__
++#define JPLMDECODERFACTORY_H__
++
+ 
+ #include "Lib/Common/JPLMDecoderConfiguration.h"
+-#include "Lib/Common/JPLMEncoderConfiguration.h"
+-#include "Lib/Common/JPLMEncoderConfigurationLightField.h"
+ #include "Lib/Part1/Common/Boxes/JpegPlenoCodestreamBox.h"
+ #include "Lib/Part1/Common/JPLMCodec.h"
+ 
+ 
+ /**
+- * @brief      Front-end to create jplm codec objects.
++ * @brief      Front-end to create jplm decoder objects.
+  */
+-class JPLMCodecFactory {
+- protected:
+-  /**
+-   * @brief      Gets the light field encoder.
+-   *
+-   * @param      configuration  The configuration
+-   *
+-   * @return     The light field encoder.
+-   */
+-  static std::unique_ptr<JPLMCodec> get_light_field_encoder(
+-      std::shared_ptr<JPLMEncoderConfigurationLightField> configuration);
++class JPLMDecoderFactory {
+ 
+  public:
+-  /**
+-   * @brief      Gets the encoder.
+-   *
+-   * @param      configuration  The configuration
+-   *
+-   * @return     The encoder given the desired configuration.
+-   */
+-  static std::unique_ptr<JPLMCodec> get_encoder(
+-      std::shared_ptr<JPLMEncoderConfiguration> configuration);
+ 
+ 
+   /**
+@@ -140,4 +120,4 @@ class JPLMCodecFactory {
+       std::shared_ptr<JPLMDecoderConfiguration> configuration);
+ };
+ 
+-#endif /* end of include guard: JPLMCODECFACTORY_H__ */
++#endif /* end of include guard: JPLMCODECFACTORY_H__ */
+\ No newline at end of file
+diff --git a/source/Lib/Common/Encoder/CMakeLists.txt b/source/Lib/Common/Encoder/CMakeLists.txt
+new file mode 100644
+index 00000000..f1b08994
+--- /dev/null
++++ b/source/Lib/Common/Encoder/CMakeLists.txt
+@@ -0,0 +1,7 @@
++file(GLOB COMMON_ENCODER_SOURCES "*.cpp")
++
++add_library(jplm_common_encoder ${COMMON_ENCODER_SOURCES})
++
++target_link_libraries(jplm_common_encoder PUBLIC 
++                                            jplm_common
++                     )
+\ No newline at end of file
+diff --git a/source/Lib/Common/Encoder/JPLMEncoderFactory.cpp b/source/Lib/Common/Encoder/JPLMEncoderFactory.cpp
+new file mode 100644
+index 00000000..d08d072d
+--- /dev/null
++++ b/source/Lib/Common/Encoder/JPLMEncoderFactory.cpp
+@@ -0,0 +1,87 @@
++/* The copyright in this software is being made available under the BSD
++ * License, included below. This software may be subject to other third party
++ * and contributor rights, including patent rights, and no such rights are
++ * granted under this license.
++ *
++ * Copyright (c) 2010-2020, ITU/ISO/IEC
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ *  * Redistributions of source code must retain the above copyright notice,
++ *    this list of conditions and the following disclaimer.
++ *  * Redistributions in binary form must reproduce the above copyright notice,
++ *    this list of conditions and the following disclaimer in the documentation
++ *    and/or other materials provided with the distribution.
++ *  * Neither the name of the ITU/ISO/IEC nor the names of its contributors may
++ *    be used to endorse or promote products derived from this software without
++ *    specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
++ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
++ * THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++/** \file     JPLMEncoderFactory.cpp
++ *  \brief    
++ *  \details  
++ *  \author   Ismael Seidel <ismael.seidel@ufsc.br>
++ *  \date     2024-01-31
++ */
++
++#include <memory>
++
++#include "Lib/Common/Encoder/JPLMEncoderFactory.h"
++#include "Lib/Common/JPLMEncoderConfigurationLightField.h"
++#include "Lib/Common/JPLMEncoderConfigurationLightField4DPredictionMode.h"
++#include "Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h"
++#include "Lib/Common/JPLMConfiguration.h"
++
++#include "Lib/Part1/Common/JPLMCodec.h"
++#include "Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h"
++#include "Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h"
++
++
++std::unique_ptr<JPLMCodec> JPLMEncoderFactory::get_light_field_encoder(
++    std::shared_ptr<JPLMEncoderConfigurationLightField> configuration) {
++  if (configuration->get_compression_type() ==
++      CompressionTypeLightField::transform_mode) {
++    return std::make_unique<JPLM4DTransformModeLightFieldEncoder<uint16_t>>(
++        std::dynamic_pointer_cast<
++            JPLMEncoderConfigurationLightField4DTransformMode>(configuration));
++  }
++
++  assert(configuration->get_compression_type() ==
++         CompressionTypeLightField::prediction_mode);
++
++  return std::make_unique<JPLM4DPredictionModeLightFieldEncoder<uint16_t>>(
++      std::dynamic_pointer_cast<
++          JPLMEncoderConfigurationLightField4DPredictionMode>(configuration));
++}
++
++
++std::unique_ptr<JPLMCodec> JPLMEncoderFactory::get_encoder(
++    std::shared_ptr<JPLMEncoderConfiguration> configuration) {
++  switch (configuration->get_jpeg_pleno_part()) {
++    case JpegPlenoPart::LightField: {
++      return get_light_field_encoder(
++          std::dynamic_pointer_cast<JPLMEncoderConfigurationLightField>(
++              configuration));
++    }
++    default: {
++      std::cerr << "Unknown part" << std::endl;
++      exit(EXIT_FAILURE);
++    }
++  }
++
++  return nullptr;
++}
+\ No newline at end of file
+diff --git a/source/Lib/Common/Encoder/JPLMEncoderFactory.h b/source/Lib/Common/Encoder/JPLMEncoderFactory.h
+new file mode 100644
+index 00000000..a76c6c38
+--- /dev/null
++++ b/source/Lib/Common/Encoder/JPLMEncoderFactory.h
+@@ -0,0 +1,79 @@
++/* The copyright in this software is being made available under the BSD
++ * License, included below. This software may be subject to other third party
++ * and contributor rights, including patent rights, and no such rights are
++ * granted under this license.
++ *
++ * Copyright (c) 2010-2019, ITU/ISO/IEC
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ *  * Redistributions of source code must retain the above copyright notice,
++ *    this list of conditions and the following disclaimer.
++ *  * Redistributions in binary form must reproduce the above copyright notice,
++ *    this list of conditions and the following disclaimer in the documentation
++ *    and/or other materials provided with the distribution.
++ *  * Neither the name of the ITU/ISO/IEC nor the names of its contributors may
++ *    be used to endorse or promote products derived from this software without
++ *    specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
++ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
++ * THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++/** \file     JPLMEncoderFactory.h
++ *  \brief    
++ *  \details  
++ *  \author   Ismael Seidel <ismael.seidel@ufsc.br>
++ *  \date     2024-01-31
++ */
++
++#ifndef JPLMENCODERFACTORY_H__
++#define JPLMENCODERFACTORY_H__
++
++#include "Lib/Common/JPLMEncoderConfiguration.h"
++#include "Lib/Common/JPLMEncoderConfigurationLightField.h"
++#include "Lib/Part1/Common/Boxes/JpegPlenoCodestreamBox.h"
++#include "Lib/Part1/Common/JPLMCodec.h"
++
++
++/**
++ * @brief      Front-end to create jplm encoder objects.
++ */
++class JPLMEncoderFactory {
++ protected:
++  /**
++   * @brief      Gets the light field encoder.
++   *
++   * @param      configuration  The configuration
++   *
++   * @return     The light field encoder.
++   */
++  static std::unique_ptr<JPLMCodec> get_light_field_encoder(
++      std::shared_ptr<JPLMEncoderConfigurationLightField> configuration);
++
++ public:
++  /**
++   * @brief      Gets the encoder.
++   *
++   * @param      configuration  The configuration
++   *
++   * @return     The encoder given the desired configuration.
++   */
++  static std::unique_ptr<JPLMCodec> get_encoder(
++      std::shared_ptr<JPLMEncoderConfiguration> configuration);
++
++
++};
++
++#endif /* end of include guard: JPLMENCODERFACTORY_H__ */
+diff --git a/source/Lib/Common/JPLMConfiguration.cpp b/source/Lib/Common/JPLMConfiguration.cpp
+index ea3370cc..a55a2cf3 100644
+--- a/source/Lib/Common/JPLMConfiguration.cpp
++++ b/source/Lib/Common/JPLMConfiguration.cpp
+@@ -109,6 +109,7 @@ void JPLMConfiguration::add_options() {
+       },
+       this->current_hierarchy_level,
+       {[this]() -> std::string { return "1"; }}});
++      
+ }
+ 
+ 
+diff --git a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
+index 76d4cae1..fdbc8a01 100644
+--- a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
++++ b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp
+@@ -247,6 +247,60 @@ void JPLMEncoderConfigurationLightField4DTransformMode::add_options() {
+       this->current_hierarchy_level,
+       {[this]() -> std::string { return "1000.0"; }}});
+ 
++  
++  this->add_cli_json_option({"--target-rate", "-tr",
++      "Target bpp to aim during RDO process of 4D Transform (floating point value)."
++      "When this value is different of 0 the lambda value is ignored.",
++      [this](const nlohmann::json &conf) -> std::optional<std::string> {
++        if (conf.contains("target_rate")) {
++          return std::to_string(conf["target_rate"].get<double>());
++        }
++        return std::nullopt;
++      },
++      [this](std::string arg) {
++        std::string::size_type sz;
++        this->target_rate = std::stod(arg, &sz);
++      },
++      this->current_hierarchy_level,
++      {[this]() -> std::string { return "0"; }}});
++
++
++  this->add_cli_json_option({"--target-rate-algorithm", "-tra",
++      "Algorithm used to control the rate."
++      "The options are: bisection, hsplit and hslope.",
++      [this](const nlohmann::json &conf) -> std::optional<std::string> {
++        if (conf.contains("target_rate")) {
++          return conf["fast_rate_search"].get<std::string>();
++        }
++        return std::nullopt;
++      },
++      [this](std::string arg) {
++        std::string::size_type sz;
++        this->target_rate_algorithm = arg;
++      },
++      this->current_hierarchy_level,
++      {[this]() -> std::string { return "hslope"; }}});
++
++  this->add_cli_json_option({"--fast_rate_search", "-fastrs",
++      "Enables the display of a progress bar showing the percentage of "
++      "completion, run time and expected finishing time.",
++      [this](const nlohmann::json &conf) -> std::optional<std::string> {
++        if (conf.contains("fast_rate_search")) {
++          return conf["fast_rate_search"].get<std::string>();
++        }
++        return std::nullopt;
++      },
++      [this](std::string arg) {
++        if (arg == "false") {
++          this->rate_search_is_fast_mode = false;
++        } else {
++          this->rate_search_is_fast_mode = true;
++        }
++      },
++      this->current_hierarchy_level,
++      {[this]() -> std::string { return "false"; }}});      
++
++
+   this->add_cli_json_option({"--show-error-estimate", "-errorest",
+       "Shows error estimates computed during RDO. Although close to the real "
+       "error figures, they are only estimates (do not account for rounding "
+@@ -327,11 +381,29 @@ JPLMEncoderConfigurationLightField4DTransformMode::get_compression_type()
+ }
+ 
+ 
++void JPLMEncoderConfigurationLightField4DTransformMode::set_lambda(double lambda) {
++  this->lambda = lambda;
++}
++
++
+ double JPLMEncoderConfigurationLightField4DTransformMode::get_lambda() const {
+   return lambda;
+ }
+ 
+ 
++double JPLMEncoderConfigurationLightField4DTransformMode::get_target_rate() const {
++  return target_rate;
++}
++
++std::string JPLMEncoderConfigurationLightField4DTransformMode::get_target_rate_algorithm() const {
++  return target_rate_algorithm;
++}
++
++bool JPLMEncoderConfigurationLightField4DTransformMode::get_rate_search_is_fast_mode() const {
++  return rate_search_is_fast_mode;
++}
++
++
+ uint32_t JPLMEncoderConfigurationLightField4DTransformMode::
+     get_minimal_transform_size_intra_view_vertical() {
+   return minimal_transform_size_intra_view_vertical_v;
+diff --git a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
+index 9168f412..b2c3fa4a 100644
+--- a/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
++++ b/source/Lib/Common/JPLMEncoderConfigurationLightField4DTransformMode.h
+@@ -83,6 +83,10 @@ class JPLMEncoderConfigurationLightField4DTransformMode
+   uint32_t minimal_transform_size_intra_view_horizontal_u = 4;
+ 
+   double lambda = 1000.0;
++  double target_rate = 0; // if 0 use lambda instead
++  std::string target_rate_algorithm = "hslope"; // if 0 use lambda instead
++  bool rate_search_is_fast_mode = false;
++
+   BorderBlocksPolicy border_policy = BorderBlocksPolicy::truncate;
+ 
+   double transform_scale_t = 1.0;
+@@ -101,7 +105,12 @@ class JPLMEncoderConfigurationLightField4DTransformMode
+ 
+  public:
+   JPLMEncoderConfigurationLightField4DTransformMode(int argc, char **argv);
++  void set_lambda(double lambda);
+   double get_lambda() const;
++  double get_target_rate() const;
++  std::string get_target_rate_algorithm() const;
++  bool get_rate_search_is_fast_mode() const;
++
+   virtual CompressionTypeLightField get_compression_type() const override;
+   uint32_t get_minimal_transform_size_intra_view_vertical();
+   uint32_t get_maximal_transform_size_intra_view_vertical();
+diff --git a/source/Lib/Part1/Common/Boxes/CMakeLists.txt b/source/Lib/Part1/Common/Boxes/CMakeLists.txt
+index b4e22c67..d3ffbfe7 100644
+--- a/source/Lib/Part1/Common/Boxes/CMakeLists.txt
++++ b/source/Lib/Part1/Common/Boxes/CMakeLists.txt
+@@ -1,15 +1,5 @@
+-set(PART1_COMMON_BOXES_SOURCES
+-    CommonExceptions.cpp
+-    FileTypeBox.cpp
+-    FileTypeContents.cpp
+-    JpegPlenoCodestreamBox.cpp
+-    JpegPlenoFileTypeContents.cpp
+-    JpegPlenoSignatureBox.cpp
+-    JpegPlenoSignatureContents.cpp
+-    JpegPlenoThumbnailBox.cpp
+-    JpegPlenoThumbnailContents.cpp
+-    ../../../Common/Boxes/Box.cpp
+-    ../../../Common/Boxes/InFileDBox.cpp
+-    ../../../Common/Boxes/InMemoryDBox.cpp)
++file(GLOB PART1_COMMON_BOXES_SOURCES "*.cpp")
+ 
+-add_library(jplm_part1_common_boxes ${PART1_COMMON_BOXES_SOURCES})
+\ No newline at end of file
++add_library(jplm_part1_common_boxes ${PART1_COMMON_BOXES_SOURCES})
++
++target_link_libraries(jplm_part1_common_boxes PUBLIC jplm_common_boxes_generic)
+\ No newline at end of file
+diff --git a/source/Lib/Part1/Common/CMakeLists.txt b/source/Lib/Part1/Common/CMakeLists.txt
+index 0503568e..ca7f4396 100644
+--- a/source/Lib/Part1/Common/CMakeLists.txt
++++ b/source/Lib/Part1/Common/CMakeLists.txt
+@@ -1,10 +1,5 @@
+-set(PART1_COMMON_SOURCES
+-    CommonExceptions.cpp
+-    CatalogGenerator.cpp
+-    JPLFile.cpp
+-    JPLMCodec.cpp
+-    ../../Common/Boxes/Box.cpp
+-    ../../Common/Boxes/InFileDBox.cpp
+-    ../../Common/Boxes/InMemoryDBox.cpp)
++file(GLOB PART1_COMMON_SOURCES "*.cpp")
+ 
+-add_library(jplm_part1_common ${PART1_COMMON_SOURCES})
+\ No newline at end of file
++add_library(jplm_part1_common ${PART1_COMMON_SOURCES})
++
++target_link_libraries(jplm_part1_common PUBLIC jplm_part1_common_boxes)
+\ No newline at end of file
+diff --git a/source/Lib/Part1/Decoder/Boxes/CMakeLists.txt b/source/Lib/Part1/Decoder/Boxes/CMakeLists.txt
+index d7784722..c2f52d6c 100644
+--- a/source/Lib/Part1/Decoder/Boxes/CMakeLists.txt
++++ b/source/Lib/Part1/Decoder/Boxes/CMakeLists.txt
+@@ -1,17 +1,5 @@
+-set(PART1_BOXES_DECODER_SOURCES
+-    JpegPlenoSignatureBoxParser.cpp
+-    FileTypeBoxParser.cpp
+-    JpegPlenoThumbnailBoxParser.cpp
+-    ../../Common/Boxes/CommonExceptions.cpp
+-    ../../Common/Boxes/FileTypeBox.cpp
+-    ../../Common/Boxes/FileTypeContents.cpp
+-    ../../Common/Boxes/JpegPlenoCodestreamBox.cpp
+-    ../../Common/Boxes/JpegPlenoFileTypeContents.cpp
+-    ../../Common/Boxes/JpegPlenoSignatureBox.cpp
+-    ../../Common/Boxes/JpegPlenoSignatureContents.cpp
+-    ../../Common/Boxes/JpegPlenoThumbnailBox.cpp
+-    ../../Common/Boxes/JpegPlenoThumbnailContents.cpp)
++file(GLOB PART1_BOXES_DECODER_SOURCES "*.cpp")
+ 
+ add_library(jplm_part1_boxes_decoder ${PART1_BOXES_DECODER_SOURCES})
+-target_link_libraries(jplm_part1_boxes_decoder stream)
+-target_link_libraries(jplm_part1_boxes_decoder jplm_common_boxes_parsers)
+\ No newline at end of file
++
++target_link_libraries(jplm_part1_boxes_decoder PUBLIC jplm_common_boxes_decoder jplm_part1_common_boxes)
+\ No newline at end of file
+diff --git a/source/Lib/Part1/Decoder/Boxes/FileTypeBoxParser.h b/source/Lib/Part1/Decoder/Boxes/FileTypeBoxParser.h
+index b2345b9d..9487fcc8 100644
+--- a/source/Lib/Part1/Decoder/Boxes/FileTypeBoxParser.h
++++ b/source/Lib/Part1/Decoder/Boxes/FileTypeBoxParser.h
+@@ -42,7 +42,7 @@
+ #define JPLM_LIB_PART1_DECODER_BOXES_FILETYPEBOXPARSER_H__
+ 
+ #include <memory>
+-#include "source/Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
+ #include "Lib/Part1/Common/Boxes/FileTypeBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParser.h b/source/Lib/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParser.h
+index fc268fbc..a32597e3 100644
+--- a/source/Lib/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParser.h
++++ b/source/Lib/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParser.h
+@@ -42,7 +42,7 @@
+ #define JPLM_LIB_PART1_DECODER_BOXES_JPEGPLENOSIGNATUREBOXPARSER_H__
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
+ #include "Lib/Part1/Common/Boxes/JpegPlenoSignatureBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part1/Decoder/Boxes/JpegPlenoThumbnailBoxParser.h b/source/Lib/Part1/Decoder/Boxes/JpegPlenoThumbnailBoxParser.h
+index 0c7c787c..37da8fe0 100644
+--- a/source/Lib/Part1/Decoder/Boxes/JpegPlenoThumbnailBoxParser.h
++++ b/source/Lib/Part1/Decoder/Boxes/JpegPlenoThumbnailBoxParser.h
+@@ -42,8 +42,8 @@
+ #define JPLM_LIB_PART1_DECODER_BOXES_JPEG_PLENO_THUMBNAIL_BOX_PARSER_H
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part1/Common/Boxes/JpegPlenoThumbnailBox.h"
+ #include "Lib/Part1/Decoder/Boxes/CommonExceptions.h"
+ 
+diff --git a/source/Lib/Part1/Decoder/CMakeLists.txt b/source/Lib/Part1/Decoder/CMakeLists.txt
+index 92bfe2d5..46da053a 100644
+--- a/source/Lib/Part1/Decoder/CMakeLists.txt
++++ b/source/Lib/Part1/Decoder/CMakeLists.txt
+@@ -1,6 +1,5 @@
+-set(PART1_DECODER_SOURCES  JPLFileFromStream.cpp
+-    JPLFileParser.cpp
+-    ../Common/JPLFile.cpp
+-    ../Common/CatalogGenerator.cpp)
++file(GLOB PART1_DECODER_SOURCES "*.cpp")
+ 
+-add_library(jplm_part1_decoder ${PART1_DECODER_SOURCES})
+\ No newline at end of file
++add_library(jplm_part1_decoder ${PART1_DECODER_SOURCES})
++
++target_link_libraries(jplm_part1_decoder PUBLIC jplm_part1_boxes_decoder)
+\ No newline at end of file
+diff --git a/source/Lib/Part1/Decoder/JPLFileFromStream.h b/source/Lib/Part1/Decoder/JPLFileFromStream.h
+index 881fea03..d3eeac43 100644
+--- a/source/Lib/Part1/Decoder/JPLFileFromStream.h
++++ b/source/Lib/Part1/Decoder/JPLFileFromStream.h
+@@ -47,7 +47,7 @@
+ #include <iostream>
+ #include <magic_enum.hpp>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part1/Common/JPLFile.h"
+ #include "Lib/Part1/Decoder/CommonExceptions.h"
+ #include "Lib/Part1/Decoder/JPLFileParser.h"
+diff --git a/source/Lib/Part1/Decoder/JPLFileParser.h b/source/Lib/Part1/Decoder/JPLFileParser.h
+index 4835d25d..6401cac6 100644
+--- a/source/Lib/Part1/Decoder/JPLFileParser.h
++++ b/source/Lib/Part1/Decoder/JPLFileParser.h
+@@ -42,7 +42,7 @@
+ #define JPLM_LIB_PART1_DECODER_JPLFILEPARSER_H
+ 
+ 
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ 
+ 
+diff --git a/source/Lib/Part2/Common/Boxes/CMakeLists.txt b/source/Lib/Part2/Common/Boxes/CMakeLists.txt
+index f6e1d0de..64bb0707 100644
+--- a/source/Lib/Part2/Common/Boxes/CMakeLists.txt
++++ b/source/Lib/Part2/Common/Boxes/CMakeLists.txt
+@@ -1,10 +1,5 @@
+-set(PART2_COMMON_BOX_SOURCES
+-    CameraParametersArray.cpp
+-    CameraParameterBox.cpp
+-    CameraParameterContents.cpp
+-    JpegPlenoLightFieldBox.cpp
+-    JpegPlenoLightFieldContents.cpp
+-    JpegPlenoLightFieldHeaderBox.cpp
+-    JpegPlenoLightFieldHeaderContents.cpp)
++file(GLOB PART2_COMMON_BOX_SOURCES "*.cpp")
+ 
+-add_library(jplm_part2_common_boxes ${PART2_COMMON_BOX_SOURCES})
+\ No newline at end of file
++add_library(jplm_part2_common_boxes ${PART2_COMMON_BOX_SOURCES})
++
++target_link_libraries(jplm_part2_common_boxes PUBLIC jplm_common_boxes_generic)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Common/CMakeLists.txt b/source/Lib/Part2/Common/CMakeLists.txt
+index 1d4f1733..ef2daca2 100644
+--- a/source/Lib/Part2/Common/CMakeLists.txt
++++ b/source/Lib/Part2/Common/CMakeLists.txt
+@@ -1,21 +1,5 @@
+-set(PART2_COMMON_SOURCES
+-    CommonExceptions.cpp
+-    JPLMLightFieldCodec.cpp
+-    LightfieldCoordinate.cpp
+-    Lightfield.cpp
+-    LightfieldDimension.cpp
+-    LightfieldFromFile.cpp
+-    LightfieldIOConfiguration.cpp
+-    PGX3CharViewToFilename.cpp
+-    PPM3CharViewToFilename.cpp
+-    View.cpp
+-    ViewFromPGXFile.cpp
+-    ViewIOPolicy.cpp
+-    ViewIOPolicyLimitedMemory.cpp
+-    ViewIOPolicyLimitedNumberOfViews.cpp
+-    ViewIOPolicyLimitlessMemory.cpp
+-    ViewIOPolicyOneAtATime.cpp
+-    ViewIOPolicyQueue.cpp
+-    ViewToFilenameTranslator.cpp)
++file(GLOB PART2_COMMON_SOURCES "*.cpp")
+ 
+-add_library(jplm_part2_common ${PART2_COMMON_SOURCES})
+\ No newline at end of file
++add_library(jplm_part2_common ${PART2_COMMON_SOURCES})
++
++target_link_libraries(jplm_part2_common PUBLIC jplm_utils_image jplm_part2_common_boxes jplm_part1_common)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Common/Lightfield.h b/source/Lib/Part2/Common/Lightfield.h
+index 04c52cf3..23511aee 100644
+--- a/source/Lib/Part2/Common/Lightfield.h
++++ b/source/Lib/Part2/Common/Lightfield.h
+@@ -285,7 +285,7 @@ class Lightfield : public Generic2DStructure<std::unique_ptr<View<T>>> {
+ 
+   auto get_views_bpp() const {
+     if (!this->elements) {
+-      //Throws
++      ////TODO: Throws
+     }
+     return this->elements[0]->get_bpp();
+   }
+diff --git a/source/Lib/Part2/Common/LightfieldDimension.h b/source/Lib/Part2/Common/LightfieldDimension.h
+index 7a9efc0e..ac98f0b2 100644
+--- a/source/Lib/Part2/Common/LightfieldDimension.h
++++ b/source/Lib/Part2/Common/LightfieldDimension.h
+@@ -133,6 +133,13 @@ class LightfieldDimension : public LightfieldCoordinate<T> {
+         std::apply([](auto... x) { return std::make_tuple(x > 1 ? 2 : 1 ...); },
+             this->dimensions));
+   }
++
++  template<typename S> 
++  LightfieldDimension<S> as_type() const {
++    return LightfieldDimension<S>(
++        std::apply([](auto... x) { return std::make_tuple(static_cast<S>(x) ...); }, 
++            this->dimensions));
++  }
+ };
+ 
+ 
+diff --git a/source/Lib/Part2/Common/TransformMode/Block4D.h b/source/Lib/Part2/Common/TransformMode/Block4D.h
+index 9961cfee..7180eca5 100644
+--- a/source/Lib/Part2/Common/TransformMode/Block4D.h
++++ b/source/Lib/Part2/Common/TransformMode/Block4D.h
+@@ -127,14 +127,18 @@ class Block4D {
+   std::tuple<uint32_t, uint32_t, uint32_t, uint32_t> get_dimension() {
+     return std::make_tuple(mlength_t, mlength_s, mlength_v, mlength_u);
+   }
++
++
+   LightfieldDimension<uint32_t> get_dimension() const {
+     return {mlength_t, mlength_s, mlength_v, mlength_u};
+   }
+ 
++
+   LightfieldDimension<std::size_t> get_strides() const {
+     return {stride_t, stride_s, stride_v, 1};
+   }
+ 
++
+   std::size_t get_linear_position(
+       const LightfieldCoordinate<uint32_t>& position) const;
+   std::size_t get_linear_position(uint32_t position_t, uint32_t position_s,
+diff --git a/source/Lib/Part2/Common/TransformMode/CMakeLists.txt b/source/Lib/Part2/Common/TransformMode/CMakeLists.txt
+index 8be93da6..9350034b 100644
+--- a/source/Lib/Part2/Common/TransformMode/CMakeLists.txt
++++ b/source/Lib/Part2/Common/TransformMode/CMakeLists.txt
+@@ -1,23 +1,9 @@
+-set(PART2_COMMON_TRANSFORM_MODE_SOURCES
+-    ABACCodec.cpp
+-    Block4D.cpp
+-    BorderBlocksPolicy.cpp
+-    CodestreamPointerSetMarkerSegment.cpp
+-    ColourComponentScalingMarkerSegment.cpp
+-    ComponentSsizParameter.cpp
+-    DCT4DBlock.cpp
+-    DCT4DCoefficientsManager.cpp
+-    Hierarchical4DCodec.cpp
+-    JPLM4DTransformModeLightFieldCodec.cpp
+-    LightFieldConfigurationMarkerSegment.cpp
+-    LightFieldTransformMode.cpp
+-    Markers.cpp
+-    ProbabilityModel.cpp
+-    ProbabilityModelsHandler.cpp
+-    Transformed4DBlock.cpp)
+-
++file(GLOB PART2_COMMON_TRANSFORM_MODE_SOURCES "*.cpp")
+ 
+ add_library(jplm_part2_common_transform_mode ${PART2_COMMON_TRANSFORM_MODE_SOURCES})
+ 
+-target_link_libraries(jplm_part2_common_transform_mode
+-                      jplm_common_boxes_generic jplm_part2_common image)
+\ No newline at end of file
++target_link_libraries(jplm_part2_common_transform_mode PUBLIC jplm_part2_common) 
++
++if(OpenMP_CXX_FOUND)
++    target_link_libraries(jplm_part2_common_transform_mode PUBLIC OpenMP::OpenMP_CXX)
++endif()
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Common/TransformMode/Hierarchical4DCodec.h b/source/Lib/Part2/Common/TransformMode/Hierarchical4DCodec.h
+index c4330221..59863634 100644
+--- a/source/Lib/Part2/Common/TransformMode/Hierarchical4DCodec.h
++++ b/source/Lib/Part2/Common/TransformMode/Hierarchical4DCodec.h
+@@ -121,6 +121,7 @@ class Hierarchical4DCodec {
+   void set_lightfield_dimension(const LightfieldDimension<uint32_t>& dimension);
+ 
+ 
++  //TODO: check if possible to set the return value as LightfieldDimension<uint32_t>
+   LightfieldDimension<std::size_t> get_lightfield_dimension() const {
+     return {mNumberOfVerticalViews, mNumberOfHorizontalViews,
+         mNumberOfViewLines, mNumberOfViewColumns};
+diff --git a/source/Lib/Part2/Common/TransformMode/JPLM4DTransformModeLightFieldCodec.h b/source/Lib/Part2/Common/TransformMode/JPLM4DTransformModeLightFieldCodec.h
+index c26271b8..0d7a4594 100644
+--- a/source/Lib/Part2/Common/TransformMode/JPLM4DTransformModeLightFieldCodec.h
++++ b/source/Lib/Part2/Common/TransformMode/JPLM4DTransformModeLightFieldCodec.h
+@@ -44,6 +44,7 @@
+ #include <cstdint>
+ #include <iostream>
+ #include <omp.h>
++
+ #include "Lib/Common/Boxes/Generic/ContiguousCodestreamBox.h"
+ #include "Lib/Part2/Common/JPLMLightFieldCodec.h"
+ #include "Lib/Part2/Common/TransformMode/BorderBlocksPolicy.h"
+diff --git a/source/Lib/Part2/Common/TransformMode/LightFieldTransformMode.h b/source/Lib/Part2/Common/TransformMode/LightFieldTransformMode.h
+index 931dbd67..1cd68b88 100644
+--- a/source/Lib/Part2/Common/TransformMode/LightFieldTransformMode.h
++++ b/source/Lib/Part2/Common/TransformMode/LightFieldTransformMode.h
+@@ -91,6 +91,8 @@ Block4D LightFieldTransformMode<T>::get_block_4D_from(const int channel,
+     const LightfieldCoordinate<uint32_t>& coordinate_4d,
+     const LightfieldDimension<uint32_t>& size) {
+   auto block = Block4D(size);
++  #pragma omp critical
++  {   //the entire method is in a critical section..
+   const auto& [t_initial, s_initial, v_initial, u_initial] = coordinate_4d;
+   const auto [t_max, s_max, v_max, u_max] = coordinate_4d + size;
+   auto c = 0;
+@@ -101,8 +103,6 @@ Block4D LightFieldTransformMode<T>::get_block_4D_from(const int channel,
+       //           << channel << std::endl;
+       //! \todo Check this for errors
+       if (this->is_coordinate_valid({t, s, v_initial, u_initial})) {
+-        #pragma omp critical 
+-        {
+         const auto& image_channel =
+             this->get_image_at({t, s}).get_channel(channel);
+         for (auto v = v_initial; v < v_max; ++v) {
+@@ -116,7 +116,6 @@ Block4D LightFieldTransformMode<T>::get_block_4D_from(const int channel,
+             }
+           }
+         }
+-        }
+       } else {
+         for (auto v = v_initial; v < v_max; ++v) {
+           for (auto u = u_initial; u < u_max; ++u) {
+@@ -162,6 +161,7 @@ Block4D LightFieldTransformMode<T>::get_block_4D_from(const int channel,
+       ++u;
+       ++last_valid_u;
+     }
++    //TODO: check the need for this ifdef...
+ #ifdef _WIN32
+     LightfieldCoordinate<int> c(
+         last_valid_t, last_valid_s, last_valid_v, last_valid_u);
+@@ -171,6 +171,7 @@ Block4D LightFieldTransformMode<T>::get_block_4D_from(const int channel,
+ #endif
+   }
+ 
++  }
+   return block;
+ }
+ 
+diff --git a/source/Lib/Part2/Decoder/Boxes/CMakeLists.txt b/source/Lib/Part2/Decoder/Boxes/CMakeLists.txt
+index 17b9b297..63d61df1 100644
+--- a/source/Lib/Part2/Decoder/Boxes/CMakeLists.txt
++++ b/source/Lib/Part2/Decoder/Boxes/CMakeLists.txt
+@@ -1,11 +1,5 @@
+-set(PART2_BOXES_DECODER_SOURCES
+-    CameraParameterBoxParser.cpp
+-    ProfileAndLevelBoxParser.cpp
+-    LightFieldHeaderBoxParser.cpp
+-    JpegPlenoLightFieldHeaderBoxParser.cpp
+-    JpegPlenoLightFieldBoxParser.cpp
+-    ../../../Common/Boxes/InMemoryDBox.cpp)
++file(GLOB PART2_BOXES_DECODER_SOURCES "*.cpp")    
+ 
+ add_library(jplm_part2_boxes_decoder ${PART2_BOXES_DECODER_SOURCES})
+ 
+-target_link_libraries(jplm_part2_boxes_decoder jplm_common_boxes_parsers)
+\ No newline at end of file
++target_link_libraries(jplm_part2_boxes_decoder PUBLIC jplm_part1_boxes_decoder jplm_part2_common_boxes)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Decoder/Boxes/CameraParameterBoxParser.h b/source/Lib/Part2/Decoder/Boxes/CameraParameterBoxParser.h
+index 7efd879c..46d9bfba 100644
+--- a/source/Lib/Part2/Decoder/Boxes/CameraParameterBoxParser.h
++++ b/source/Lib/Part2/Decoder/Boxes/CameraParameterBoxParser.h
+@@ -43,8 +43,8 @@
+ 
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Common/Boxes/CameraParameterBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParser.h b/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParser.h
+index a12fcd85..2b6c34ef 100644
+--- a/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParser.h
++++ b/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParser.h
+@@ -44,8 +44,8 @@
+ 
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Common/Boxes/JpegPlenoLightFieldBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParser.h b/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParser.h
+index 65d0e02e..dd25ab5a 100644
+--- a/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParser.h
++++ b/source/Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParser.h
+@@ -42,8 +42,8 @@
+ #define JPLM_LIB_PART2_DECODER_BOXES_JPEGPLENOLIGHTFIELDHEADERBOXPARSER_H__
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Common/Boxes/JpegPlenoLightFieldHeaderBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part2/Decoder/Boxes/LightFieldHeaderBoxParser.h b/source/Lib/Part2/Decoder/Boxes/LightFieldHeaderBoxParser.h
+index a43ce42d..50543d38 100644
+--- a/source/Lib/Part2/Decoder/Boxes/LightFieldHeaderBoxParser.h
++++ b/source/Lib/Part2/Decoder/Boxes/LightFieldHeaderBoxParser.h
+@@ -44,7 +44,7 @@
+ 
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
+ #include "Lib/Part2/Common/Boxes/LightFieldHeaderBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part2/Decoder/Boxes/ProfileAndLevelBoxParser.h b/source/Lib/Part2/Decoder/Boxes/ProfileAndLevelBoxParser.h
+index 3f6d68c1..ce344535 100644
+--- a/source/Lib/Part2/Decoder/Boxes/ProfileAndLevelBoxParser.h
++++ b/source/Lib/Part2/Decoder/Boxes/ProfileAndLevelBoxParser.h
+@@ -44,7 +44,7 @@
+ 
+ 
+ #include <memory>
+-#include "Lib/Common/Boxes/Parsers/BoxParserHelper.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserHelper.h"
+ #include "Lib/Part2/Common/Boxes/ProfileAndLevelBox.h"
+ 
+ namespace JPLMBoxParser {
+diff --git a/source/Lib/Part2/Decoder/CMakeLists.txt b/source/Lib/Part2/Decoder/CMakeLists.txt
+index 8801bfe0..6738efe7 100644
+--- a/source/Lib/Part2/Decoder/CMakeLists.txt
++++ b/source/Lib/Part2/Decoder/CMakeLists.txt
+@@ -1,4 +1,8 @@
+-set(PART2_DECODER_SOURCES  JPLMLightFieldDecoder.cpp)
++file(GLOB PART2_DECODER_SOURCES "*.cpp")
++
+ add_library(jplm_part2_decoder ${PART2_DECODER_SOURCES})
+ 
+-target_link_libraries(jplm_part2_decoder jplm_part2_decoder_transform_mode)
+\ No newline at end of file
++target_link_libraries(jplm_part2_decoder PUBLIC
++                        jplm_part2_decoder_transform_mode
++                        jplm_part2_decoder_prediction_mode
++                        jplm_part1_decoder)     
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Decoder/PredictionMode/CMakeLists.txt b/source/Lib/Part2/Decoder/PredictionMode/CMakeLists.txt
+index 20aebb63..b525c215 100644
+--- a/source/Lib/Part2/Decoder/PredictionMode/CMakeLists.txt
++++ b/source/Lib/Part2/Decoder/PredictionMode/CMakeLists.txt
+@@ -1,2 +1,6 @@
+-set(PART2_DECODER_PREDICTION_MODE_SOURCES  JPLM4DPredictionModeLightFieldDecoder.cpp)
+-add_library(jplm_part2_decoder_prediction_mode ${PART2_DECODER_PREDICTION_MODE_SOURCES})
+\ No newline at end of file
++file(GLOB PART2_DECODER_PREDICTION_MODE_SOURCES "*.cpp")
++
++add_library(jplm_part2_decoder_prediction_mode ${PART2_DECODER_PREDICTION_MODE_SOURCES})
++
++# target_link_libraries(jplm_part2_decoder_prediction_mode PUBLIC
++#                         jplm_part2_common_prediction_mode)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Decoder/PredictionMode/JPLM4DPredictionModeLightFieldDecoder.h b/source/Lib/Part2/Decoder/PredictionMode/JPLM4DPredictionModeLightFieldDecoder.h
+index 87567d35..57f26af4 100644
+--- a/source/Lib/Part2/Decoder/PredictionMode/JPLM4DPredictionModeLightFieldDecoder.h
++++ b/source/Lib/Part2/Decoder/PredictionMode/JPLM4DPredictionModeLightFieldDecoder.h
+@@ -41,8 +41,8 @@
+ #ifndef JPLM_LIB_PART2_DECODER_PREDICTIONMODE_JPLM4DPREDICTIONMODELIGHTFIELDDECODER_H__
+ #define JPLM_LIB_PART2_DECODER_PREDICTIONMODE_JPLM4DPREDICTIONMODELIGHTFIELDDECODER_H__
+ 
++#include "Lib/Common/CommonExceptions.h"
+ #include "Lib/Part2/Decoder/JPLMLightFieldDecoder.h"
+-#include "Lib/Part2/Decoder/TransformMode/CommonExceptions.h"
+ 
+ template<typename PelType = uint16_t> 
+ class JPLM4DPredictionModeLightFieldDecoder
+diff --git a/source/Lib/Part2/Decoder/TransformMode/CMakeLists.txt b/source/Lib/Part2/Decoder/TransformMode/CMakeLists.txt
+index 07a9f87f..704a2d74 100644
+--- a/source/Lib/Part2/Decoder/TransformMode/CMakeLists.txt
++++ b/source/Lib/Part2/Decoder/TransformMode/CMakeLists.txt
+@@ -1,12 +1,6 @@
+-set(PART2_DECODER_TRANSFORM_MODE_SOURCES
+-    ABACDecoder.cpp
+-    CodestreamPointerSetMarkerSegmentParser.cpp
+-    ColourComponentScalingMarkerSegmentParser.cpp
+-    CommonExceptions.cpp
+-    Hierarchical4DDecoder.cpp
+-    JPLM4DTransformModeLightFieldDecoder.cpp
+-    LightFieldContigurationMarkerSegmentParser.cpp
+-    MarkerSegmentHelper.cpp
+-    PartitionDecoder.cpp)
++file(GLOB PART2_DECODER_TRANSFORM_MODE_SOURCES "*.cpp")
+ 
+-add_library(jplm_part2_decoder_transform_mode ${PART2_DECODER_TRANSFORM_MODE_SOURCES})
+\ No newline at end of file
++add_library(jplm_part2_decoder_transform_mode ${PART2_DECODER_TRANSFORM_MODE_SOURCES})
++
++target_link_libraries(jplm_part2_decoder_transform_mode PUBLIC
++                        jplm_part2_common_transform_mode)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Encoder/CMakeLists.txt b/source/Lib/Part2/Encoder/CMakeLists.txt
+index b440fe2c..13263e71 100644
+--- a/source/Lib/Part2/Encoder/CMakeLists.txt
++++ b/source/Lib/Part2/Encoder/CMakeLists.txt
+@@ -1,2 +1,9 @@
+-set(PART2_ENCODER_SOURCES JPLMLightFieldEncoder.cpp)
+-add_library(jplm_part2_encoder ${PART2_ENCODER_SOURCES})
+\ No newline at end of file
++file(GLOB PART2_ENCODER_SOURCES "*.cpp")
++
++add_library(jplm_part2_encoder ${PART2_ENCODER_SOURCES})
++
++target_link_libraries(jplm_part2_encoder PUBLIC
++                        jplm_part2_encoder_prediction_mode
++                        jplm_part2_encoder_transform_mode
++                     )
++
+diff --git a/source/Lib/Part2/Encoder/PredictionMode/CMakeLists.txt b/source/Lib/Part2/Encoder/PredictionMode/CMakeLists.txt
+index b7c62dcd..7ecf3856 100644
+--- a/source/Lib/Part2/Encoder/PredictionMode/CMakeLists.txt
++++ b/source/Lib/Part2/Encoder/PredictionMode/CMakeLists.txt
+@@ -1,2 +1,6 @@
+-set(PART2_ENCODER_PREDICTION_MODE_SOURCES JPLM4DPredictionModeLightFieldEncoder.cpp)
+-add_library(jplm_part2_prediction_mode_encoder ${PART2_ENCODER_PREDICTION_MODE_SOURCES})
+\ No newline at end of file
++file(GLOB PART2_ENCODER_PREDICTION_MODE_SOURCES "*.cpp")
++
++add_library(jplm_part2_encoder_prediction_mode ${PART2_ENCODER_PREDICTION_MODE_SOURCES})
++
++# target_link_libraries(jplm_part2_encoder_prediction_mode PUBLIC
++#                         jplm_part2_common_prediction_mode)
+\ No newline at end of file
+diff --git a/source/Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h b/source/Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h
+index 044cba57..2a06866f 100644
+--- a/source/Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h
++++ b/source/Lib/Part2/Encoder/PredictionMode/JPLM4DPredictionModeLightFieldEncoder.h
+@@ -42,8 +42,8 @@
+ #define JPLM_LIB_PART2_ENCODER_PREDICTIONMODE_JPLM4DPREDICTIONMODELIGHTFIELDENCODER_H__
+ 
+ #include "Lib/Common/CommonExceptions.h"
++#include "Lib/Common/JPLMEncoderConfigurationLightField4DPredictionMode.h"
+ #include "Lib/Part2/Encoder/JPLMLightFieldEncoder.h"
+-#include "source/Lib/Common/JPLMEncoderConfigurationLightField4DPredictionMode.h"
+ 
+ template<typename PelType = uint16_t>
+ class JPLM4DPredictionModeLightFieldEncoder
+diff --git a/source/Lib/Part2/Encoder/TransformMode/ABACEncoder.h b/source/Lib/Part2/Encoder/TransformMode/ABACEncoder.h
+index 00021872..79d001a7 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/ABACEncoder.h
++++ b/source/Lib/Part2/Encoder/TransformMode/ABACEncoder.h
+@@ -66,6 +66,13 @@ class ABACEncoder : public ABACCodec {
+   void output_bit(bool bit);
+   void push_current_byte_to_codestream_code();
+ 
++  void flush_byte() {
++    number_of_scalings++;
++    output_bit_pattern_according_to_condition(mLow >= SECOND_MSB_MASK);
++    push_current_byte_to_codestream_code();
++    reset();
++  }
++
+  public:
+   ABACEncoder()
+       : codestream_code(std::make_unique<ContiguousCodestreamCodeInMemory>()),
+@@ -118,16 +125,11 @@ class ABACEncoder : public ABACCodec {
+   }
+ 
+ 
+-  void flush_byte() {
+-    number_of_scalings++;
+-    output_bit_pattern_according_to_condition(mLow >= SECOND_MSB_MASK);
+-    push_current_byte_to_codestream_code();
+-    reset();
+-  }
++
+ 
+ 
+   std::unique_ptr<ContiguousCodestreamCode>&& move_codestream_code_out() {
+-    //flush_byte();
++    flush_byte();
+     return std::move(codestream_code);
+   }
+ };
+diff --git a/source/Lib/Part2/Encoder/TransformMode/CMakeLists.txt b/source/Lib/Part2/Encoder/TransformMode/CMakeLists.txt
+index a1056a9e..f9b785b6 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/CMakeLists.txt
++++ b/source/Lib/Part2/Encoder/TransformMode/CMakeLists.txt
+@@ -1,12 +1,7 @@
+-set(PART2_ENCODER_TRANSFORM_MODE_SOURCES
+-	CommonExceptions.cpp
+-    ABACEncoder.cpp
+-    Hierarchical4DEncoder.cpp
+-    TransformPartition.cpp
+-    JPLM4DTransformModeLightFieldEncoder.cpp
+-    RDCostResult.cpp
+-    ../../../Common/JPLMEncoderConfigurationLightField4DTransformMode.cpp)
++file(GLOB PART2_ENCODER_TRANSFORM_MODE_SOURCES "*.cpp")
+ 
+ add_library(jplm_part2_encoder_transform_mode ${PART2_ENCODER_TRANSFORM_MODE_SOURCES})
+ 
+-target_link_libraries(jplm_part2_encoder_transform_mode jplm_part2_common_transform_mode)
+\ No newline at end of file
++target_link_libraries(jplm_part2_encoder_transform_mode PUBLIC
++                        jplm_part2_common_transform_mode)
++
+diff --git a/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.cpp b/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.cpp
+index 434cba0a..bff6e1f7 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.cpp
++++ b/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.cpp
+@@ -59,11 +59,11 @@ Hierarchical4DEncoder::move_codestream_code_out() {
+ }
+ 
+ 
+-void Hierarchical4DEncoder::reset_probability_models() {
+-  Hierarchical4DCodec::reset_probability_models();
+-  optimization_probability_models.reset();
+-  mEntropyCoder.flush_byte();
+-}
++// void Hierarchical4DEncoder::reset_probability_models() {
++//   Hierarchical4DCodec::reset_probability_models();
++//   optimization_probability_models.reset();
++//   mEntropyCoder.flush_byte();
++// }
+ 
+ 
+ RDCostResult Hierarchical4DEncoder ::encode_sub_block(double lambda) {
+diff --git a/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.h b/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.h
+index f7def217..1a060198 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.h
++++ b/source/Lib/Part2/Encoder/TransformMode/Hierarchical4DEncoder.h
+@@ -80,7 +80,7 @@ class Hierarchical4DEncoder : public Hierarchical4DCodec {
+   bool get_mSubbandLF_significance(uint32_t threshold,
+       const LightfieldCoordinate<uint32_t>& position,
+       const LightfieldDimension<uint32_t>& range) const;
+-  void reset_probability_models() override;
++  // void reset_probability_models() override;
+   void encode_coefficient(int coefficient, uint8_t bitplane);
+   void encode_segmentation_lowerBitPlane_flag(uint8_t bitplane);
+   void encode_segmentation_splitBlock_flag(uint8_t bitplane);
+diff --git a/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h b/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
+index 1939b39b..4a91b572 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
++++ b/source/Lib/Part2/Encoder/TransformMode/JPLM4DTransformModeLightFieldEncoder.h
+@@ -335,7 +335,13 @@ class JPLM4DTransformModeLightFieldEncoder
+ 
+     const auto iter = this->get_block_coordinates_and_sizes();
+     for (auto&& [position, _, channel] : iter) {
++      //  std::cout << "channel ->" << channel << "; position -> " << position << std::endl;
+        const auto& value = this->channel_and_position_to_code_map[std::make_pair(channel, position)];
++      //  std::cout << "NOVO: ";
++      //  for (int i = 0; i < 5; ++i) {
++      //   std::cout << static_cast<int>(value->get_byte_at(i)) << " ";
++      //  }
++      //  std::cout << std::endl;        
+        codestream_code->merge(*value);
+     }
+ 
+@@ -444,6 +450,8 @@ class JPLM4DTransformModeLightFieldEncoder
+ 
+     //the encoder is always possible to paralelize
+     this->is_possible_to_paralelize = true;
++
++    setup_rate_control();
+   }
+ 
+ 
+@@ -453,7 +461,7 @@ class JPLM4DTransformModeLightFieldEncoder
+   }
+ 
+ 
+-  void setup_hierarchical_4d_encoder(Hierarchical4DEncoder& hierarchical4dencoder) {
++  void setup_hierarchical_4d_encoder(Hierarchical4DEncoder& hierarchical4dencoder) const {
+     hierarchical4dencoder.set_transform_dimension(
+         transform_mode_encoder_configuration
+             ->get_maximal_transform_dimension());
+@@ -476,6 +484,15 @@ class JPLM4DTransformModeLightFieldEncoder
+     return transform_mode_encoder_configuration->get_border_blocks_policy();
+   }
+ 
++  RDCostResult estimate_rd_cost(double lambda);
++
++  double find_lambda_bisection(double lambda, uint mas_iter=20);
++
++  double find_lambda_hslope(double lambda, uint mas_iter=20);
++
++  double find_lambda_hsplit(double lambda, uint mas_iter=20);
++
++  void setup_rate_control();
+ 
+   void finalization() override;
+ 
+@@ -528,6 +545,10 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
+   if (transform_mode_encoder_configuration->show_error_estimate()) {
+     std::cout << "\n############### Estimated error ###############\n";
+ 
++    double total_mse = 0;
++    double total_bpp = 0;
++    double total_bytes = 0;
++
+     auto table = get_console_table();
+     auto line = 0;
+     table[line++][0](samilton::Alignment::right) = "Channel: ";
+@@ -539,8 +560,13 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
+          ++i) {
+       double mse = sse_per_channel.at(i) / static_cast<double>(number_of_pels);
+       double psnr = ImageChannelUtils::get_peak_signal_to_noise_ratio(bpp, mse);
++      double bytes = bytes_per_channel.at(i);
++      total_bytes+=bytes;
+       double bpp_per_channel_after_encoding =
+-          (bytes_per_channel.at(i) * 8.0) / static_cast<double>(number_of_pels);
++          (bytes * 8.0) / static_cast<double>(number_of_pels);
++
++      total_mse += mse;
++      total_bpp += bpp_per_channel_after_encoding;
+ 
+       line = 0;
+       table[line++][i + 1] = i;
+@@ -550,8 +576,14 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
+       table[line++][i + 1] = bpp_per_channel_after_encoding;
+     }
+ 
++    total_mse /= number_of_channels;
++
+     std::cout << table;
+     std::cout << "\n###############################################\n\n";
++    std::cout << "Est. Total MSE: " << total_mse << std::endl;
++    std::cout << "Est. Total BPP: " << total_bpp << std::endl;
++    std::cout << "Est. bytes: " << total_bytes << std::endl;
++    std::cout << "\n###############################################\n\n";
+     if (!is_truncated()) {
+       std::cerr
+           << "WARNING: the error estimates are considering errors outside the "
+@@ -562,10 +594,262 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::show_error_estimate() {
+   }
+ }
+ 
++template<typename PelType>
++RDCostResult JPLM4DTransformModeLightFieldEncoder<PelType>::estimate_rd_cost(double lambda) {
++  RDCostResult total_cost(0,0,0,0);
++  const auto& block_coordinates_and_sizes = this->get_block_coordinates_and_sizes();
++  const auto& number_of_threads = transform_mode_encoder_configuration->get_number_of_threads();
++  const auto& is_fast_mode = transform_mode_encoder_configuration->get_rate_search_is_fast_mode(); 
++
++  #pragma omp parallel for num_threads(number_of_threads)
++  for (auto&& [position, size, channel] : block_coordinates_and_sizes) {
++    
++    auto block_4d = ref_to_lightfield.get_block_4D_from(channel, position, size);
++
++    //make all data in the interval centered at 0 (e.g., [0-255] -> [-128, 127])
++    int level_shift = -std::pow(2.0, ref_to_lightfield.get_views_bpp() - 1); 
++    block_4d += level_shift;
++
++    auto my_hierarchical_4d_encoder = Hierarchical4DEncoder();
++    setup_hierarchical_4d_encoder(my_hierarchical_4d_encoder);
++    
++    my_hierarchical_4d_encoder.write_marker(Marker::SOB);
++
++    auto minimum_size = transform_mode_encoder_configuration->get_minimal_transform_dimension();
++    if (is_fast_mode) {
++      minimum_size = transform_mode_encoder_configuration->get_maximal_transform_dimension();
++    }
++
++    auto transform_partition_copy = TransformPartition(minimum_size);
++    transform_partition_copy.mPartitionData.set_dimension(
++      transform_mode_encoder_configuration->get_maximal_transform_dimension());
++
++    auto rd_cost = transform_partition_copy.rd_optimize_transform(
++      block_4d, my_hierarchical_4d_encoder, lambda);
++    rd_cost.add_to_rate(3);
++
++    if (!is_fast_mode) {
++      transform_partition_copy.encode_partition(my_hierarchical_4d_encoder, lambda);
++      const auto increase_in_bytes = my_hierarchical_4d_encoder.move_codestream_code_out()->size();
++      // const auto increase_in_bytes = my_hierarchical_4d_encoder.get_ref_to_codestream_code().size();
++      rd_cost.set_rate(increase_in_bytes * 8);
++    }
++    
++    #pragma omp critical
++    {
++      total_cost += rd_cost;
++    }
++  }
++
++  return total_cost;
++}
++
++template<typename PelType>
++double JPLM4DTransformModeLightFieldEncoder<PelType>::find_lambda_bisection(double target_rate, uint max_iter) {
++  bool target_found;
++  double rate_start;
++  double rate_end;
++  double rate_half;
++  double lambda_half;
++  RDCostResult rd_cost(0,0,0,0);
++
++  double lambda_start = 1;
++  double lambda_end = 1e6;
++  const auto number_of_channels = ref_to_lightfield.get_number_of_channels_in_view();
++  const auto n_pixels = ref_to_lightfield.get_total_number_of_pixels_per_channel();
++
++  rd_cost = estimate_rd_cost(lambda_start);
++  rate_start = rd_cost.get_rate() / n_pixels;
++
++  target_found = abs(rate_start - target_rate) < (target_rate * 0.01);
++  if (target_found) {
++    return lambda_start;
++  }
++
++  rd_cost = estimate_rd_cost(lambda_end);
++  rate_end = rd_cost.get_rate() / n_pixels;
++
++  target_found = abs(rate_end - target_rate) < (target_rate * 0.01);
++  if (target_found) {
++    return lambda_end;
++  }
++
++  lambda_half = (lambda_start + lambda_end) / 2;
++
++  for (auto i = 2; i < max_iter; i++) {
++    std::cout << "Iteration " << i << std::endl;
++
++    lambda_half = (lambda_start + lambda_end) / 2;
++    rd_cost = estimate_rd_cost(lambda_half);
++    rate_half = rd_cost.get_rate() / n_pixels;
++
++    target_found = abs(rate_half - target_rate) < (target_rate * 0.01);
++    if (target_found) {
++      return lambda_half;
++    }
++
++    if (rate_half > target_rate) {
++      lambda_start = lambda_half;
++    }
++    else {
++      lambda_end = lambda_half;
++    }
++  }
++
++  return lambda_half;
++}
++
++template<typename PelType>
++double JPLM4DTransformModeLightFieldEncoder<PelType>::find_lambda_hsplit(double target_rate, uint max_iter) {
++  bool target_found;
++  double rate_start, rate_end, rate_half;
++  double lambda_half;
++  double a, b;
++  RDCostResult rd_cost(0,0,0,0);
++
++  double lambda_start = 1;
++  double lambda_end = 1e6;
++  const auto number_of_channels = ref_to_lightfield.get_number_of_channels_in_view();
++  const auto n_pixels = ref_to_lightfield.get_total_number_of_pixels_per_channel();
++
++  rd_cost = estimate_rd_cost(lambda_start);
++  rate_start = rd_cost.get_rate() / n_pixels;
++
++  target_found = abs(rate_start - target_rate) < (target_rate * 0.01);
++  if (target_found) {
++    return lambda_start;
++  }
++
++  rd_cost = estimate_rd_cost(lambda_end);
++  rate_end = rd_cost.get_rate() / n_pixels;
++
++  target_found = abs(rate_end - target_rate) < (target_rate * 0.01);
++  if (target_found) {
++    return lambda_end;
++  }
++
++  for (auto i = 2; i < max_iter; i++) {
++    std::cout << "Iteration " << i << std::endl;
++
++    if (rate_start != rate_end) {
++      b = (log2(lambda_start) - log2(lambda_end)) / (log2(rate_start) - log2(rate_end));
++      a = lambda_start * pow(rate_start, -b);
++      lambda_half = a * pow(target_rate, b);
++    }
++    else {
++      // use bisection
++      lambda_half = (lambda_start + lambda_end) / 2;
++    }
++
++    rd_cost = estimate_rd_cost(lambda_half);
++    rate_half = rd_cost.get_rate() / n_pixels;
++
++    target_found = abs(rate_half - target_rate) < (target_rate * 0.01);
++    if (target_found) {
++      return lambda_half;
++    }
++
++    if (rate_half > target_rate) {
++      lambda_start = lambda_half;
++      rate_start = rate_half;
++    }
++    else {
++      lambda_end = lambda_half;
++      rate_end = rate_half;
++    }
++  }
++
++  return lambda_half;
++}
++
++template<typename PelType>
++double JPLM4DTransformModeLightFieldEncoder<PelType>::find_lambda_hslope(double target_rate, uint max_iter) {
++  bool target_found;
++  double lambda_estimative;
++  double distortion, rate, last_rate;
++  RDCostResult rd_cost(0,0,0,0);
++
++  const auto number_of_channels = ref_to_lightfield.get_number_of_channels_in_view();
++  const auto n_pixels = ref_to_lightfield.get_total_number_of_pixels_per_channel();
++
++  double factor = 1;
++  double a = 25;
++  double b = -1.5;
++  double lambda = a * pow(target_rate, b);
++
++  for (auto i = 0; i < max_iter; i++) {
++    std::cout << "Iteration " << i << std::endl;
++
++    rd_cost = estimate_rd_cost(lambda);
++    rate = rd_cost.get_rate() / n_pixels;
++    distortion = rd_cost.get_error() / n_pixels / number_of_channels;
++
++    target_found = abs(rate - target_rate) < (target_rate * 0.01);
++    if (target_found) {
++      return lambda;
++    }
++
++    b = -lambda * rate / distortion;
++    a = distortion * pow(rate, -b);
++    lambda_estimative = -a * b * pow(target_rate, (b - 1));
++
++    if (abs(lambda - lambda_estimative) < 1e-6) {
++      break;
++    }
++
++    if (i != 0) {
++      if (rate < target_rate && target_rate < last_rate) {
++        factor *= 0.5;
++      }
++      else if (rate > target_rate && target_rate > last_rate) {
++        factor *= 0.5;
++      }
++    }
++
++    lambda = lambda_estimative * factor + lambda * (1 - factor);
++    last_rate = rate;
++  }
++
++  return lambda;
++}
++
++template<typename PelType>
++void JPLM4DTransformModeLightFieldEncoder<PelType>::setup_rate_control() {
++  const double target_rate = transform_mode_encoder_configuration->get_target_rate();
++  const auto target_rate_algorithm = transform_mode_encoder_configuration->get_target_rate_algorithm();
++
++  // if no target rate was provided, nothing need to be done and the
++  // lambda passed as argument (or the default value) will be used
++  if (target_rate <= 0) {
++    return;
++  }
++
++  std::cout << "Target Rate Algorithm: " << target_rate_algorithm << std::endl;
++
++  double lambda;
++  if (target_rate_algorithm == "bisection") {
++    lambda = find_lambda_bisection(target_rate);
++  }
++  else if (target_rate_algorithm == "hsplit") {
++    lambda = find_lambda_hsplit(target_rate);
++  }
++  else if (target_rate_algorithm == "hslope") {
++    lambda = find_lambda_hslope(target_rate);
++  }
++  else {
++    // maybe I should throw an error?
++    lambda = find_lambda_hslope(target_rate);
++  }
++
++  transform_mode_encoder_configuration->set_lambda(lambda);
++  std::cout << "Lambda Used: " << lambda << std::endl;
++}
++
+ 
+ template<typename PelType>
+ void JPLM4DTransformModeLightFieldEncoder<PelType>::finalization() {
+-  
++  // #pragma omp critical
++  // {
+ 
+   auto& codestreams = this->jpl_file->get_reference_to_codestreams();
+   
+@@ -582,6 +866,7 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::finalization() {
+       std::move(codestream_box));
+ 
+   this->show_error_estimate();
++  // }
+ }
+ 
+ 
+@@ -590,86 +875,57 @@ void JPLM4DTransformModeLightFieldEncoder<PelType>::run_for_block_4d(
+     const uint32_t channel, const LightfieldCoordinate<uint32_t>& position,
+     const LightfieldDimension<uint32_t>& size) {
+ 
++  
+     auto transform_partition_copy = TransformPartition((transform_mode_encoder_configuration
+                                 ->get_minimal_transform_dimension()));
+     transform_partition_copy.mPartitionData.set_dimension(
+         transform_mode_encoder_configuration
+             ->get_maximal_transform_dimension());
+ 
+-  // std::map<std::tuple<uint32_t, LightfieldCoordinate<uint32_t>>, std::unique_ptr<ContiguousCodestreamCode>> channel_and_position_to_code_map;
+-  // channel_and_position_to_code_map[std::make_pair(channel, position)] = std::make_unique<ContiguousCodestreamCodeInMemory>();
+-  // typedef std::unordered_map<const key_t, int , lf_coodinate_key_hash, lf_coodinate_key_equal> channel_to_position_map_type;
+-  // channel_to_position_map_type channel_and_position_to_code_map;
+-  // channel_and_position_to_code_map[std::make_pair(channel, position)] = std::move();
+-
+-  // auto key = std::make_pair(channel, position);
+-  // auto value = std::make_unique<ContiguousCodestreamCodeInMemory>();
+-  // channel_and_position_to_code_map.emplace(key, std::move(value));
+-
+   auto my_hierarchical_4d_encoder = Hierarchical4DEncoder();
+   setup_hierarchical_4d_encoder(my_hierarchical_4d_encoder);
+-
+-  auto current_codestream_code = std::make_unique<ContiguousCodestreamCodeInMemory>();
+-
+-  // std::cout << "Channel: " << channel << std::endl;
+-  // std::cout << "Size: " << position << std::endl;
+-
+-  // //write_marker
+-  // auto bytes = Markers::get_bytes(Marker::SOB);
+-  // for (const auto& byte : bytes) {
+-  //   current_codestream_code->push_byte(byte);
+-  // }
+-
+-
+-  // const auto number_of_bytes_in_codestream_before_encoding_block =
+-  //     my_hierarchical_4d_encoder.get_ref_to_codestream_code().size();
+-
+-
+-  //adds the size as it points to the first byte of the SOB marker
+-  //the cast is to ensure the variant will contain only uint64_t at first
+-  //thus avoiding possible overflow with uint32_T
+-  // byte_index_for_pnt.push_back(static_cast<uint64_t>(
+-  //     number_of_bytes_in_codestream_before_encoding_block));
+   
+   my_hierarchical_4d_encoder.write_marker(Marker::SOB);
+ 
++  //obtaining the block_4d data from the light field
++  // the get_block_4D_from method has a critical section to avoid thread conflicts
+   auto block_4d = ref_to_lightfield.get_block_4D_from(channel, position, size);
+-  
++
+   //make all data in the interval centered at 0 (e.g., [0-255] -> [-128, 127])
+   int level_shift = -std::pow(2.0, ref_to_lightfield.get_views_bpp() - 1); 
+   block_4d += level_shift;
+ 
+   //constant lambda passed as argument
+   const auto lambda = transform_mode_encoder_configuration->get_lambda();
+-  
++
+   auto rd_cost = transform_partition_copy.rd_optimize_transform(
+       block_4d, my_hierarchical_4d_encoder, lambda);
+   //<! \todo check what happens to the metrics for shrink = 0;
+ 
+-  sse_per_channel.at(channel) += rd_cost.get_error();
+-
+-  if (transform_mode_encoder_configuration->is_verbose()) {
+-    transform_partition_copy.show_partition_codes_and_inferior_bit_plane();
+-    my_hierarchical_4d_encoder.show_inferior_bit_plane();
+-  }
+-
+-
+   transform_partition_copy.encode_partition(my_hierarchical_4d_encoder, lambda);
+ 
+   //reset prob models here at the end to ensure no flush is called.
+   //assumes that the prob models are initialized in reset state...
+-  my_hierarchical_4d_encoder.reset_probability_models(); //not required anymore
+-
+-  const auto increase_in_bytes =
+-      my_hierarchical_4d_encoder.get_ref_to_codestream_code().size(); //todo: this is not considering the flushed byte!
++  // my_hierarchical_4d_encoder.reset_probability_models(); //not required anymore --> ??
+ 
+   
+ 
++  auto&& codestream_code = std::move(my_hierarchical_4d_encoder.move_codestream_code_out());
++
++  const auto increase_in_bytes = codestream_code->size(); 
++  
+   #pragma omp critical
+   {
++    //this is in the critical section to avoid thread writes to cout at the same time...
++    if (transform_mode_encoder_configuration->is_verbose()) {
++      transform_partition_copy.show_partition_codes_and_inferior_bit_plane();
++      my_hierarchical_4d_encoder.show_inferior_bit_plane();
++    }
++
++    sse_per_channel.at(channel) += rd_cost.get_error();
+     bytes_per_channel.at(channel) += increase_in_bytes;
+     this->channel_and_position_to_code_map.emplace(  std::make_pair(channel, position), //key
+-                                               std::move(my_hierarchical_4d_encoder.move_codestream_code_out()) //value
++                                               std::move(codestream_code) //value
+                                             );
+   }
+ }
+diff --git a/source/Lib/Part2/Encoder/TransformMode/RDCostResult.h b/source/Lib/Part2/Encoder/TransformMode/RDCostResult.h
+index f2c64676..f2e6d04e 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/RDCostResult.h
++++ b/source/Lib/Part2/Encoder/TransformMode/RDCostResult.h
+@@ -67,6 +67,9 @@ class RDCostResult {
+     return rate;
+   }
+ 
++  void set_rate(double r) {
++    rate = r;
++  }
+ 
+   void add_to_rate(double r) {
+     rate += r;
+diff --git a/source/Lib/Part2/Encoder/TransformMode/TransformPartition.cpp b/source/Lib/Part2/Encoder/TransformMode/TransformPartition.cpp
+index 13354ae1..5cf9709f 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/TransformPartition.cpp
++++ b/source/Lib/Part2/Encoder/TransformMode/TransformPartition.cpp
+@@ -64,8 +64,32 @@ TransformPartition::TransformPartition(
+ }
+ 
+ 
++void TransformPartition::scale_block(Block4D &transformed_block, double scaling_factor) {
++  transformed_block *= scaling_factor;
++}
++
++
++void TransformPartition::show_partition_codes_and_inferior_bit_plane() const {
++  std::cerr << "Partition code: ";
++  for (const auto &flag : partition_code) {
++    switch (flag) {
++      case PartitionFlag::transform:
++        std::cerr << 'T';
++        break;
++      case PartitionFlag::spatialSplit:
++        std::cerr << 'S';
++        break;
++      case PartitionFlag::viewSplit:
++        std::cerr << 'V';
++        break;
++    }
++  }
++  std::cerr << '\n';
++}
++
++
+ /*! Evaluates the Lagrangian cost of the optimum multiscale transform for the input block as well as the transformed block */
+-RDCostResult TransformPartition::rd_optimize_transform(Block4D &input_block,
++RDCostResult TransformPartition::rd_optimize_transform(const Block4D &input_block,
+     Hierarchical4DEncoder &hierarchical_4d_encoder, double lambda) {
+   double scaled_lambda =
+       lambda * hierarchical_4d_encoder.get_number_of_elements_in_transform();
+@@ -76,7 +100,9 @@ RDCostResult TransformPartition::rd_optimize_transform(Block4D &input_block,
+   //copies the current hierarchical_4d_encoder arithmetic model to the optimizer model.
+   hierarchical_4d_encoder.load_optimizer_state();
+ 
+-  auto lengths = input_block.get_dimension();
++  //TODO: change this to make it simpler (without manually unpacking the tupple)
++  const auto& [t, s, v, u] = input_block.get_dimension();
++  const auto& lengths = std::make_tuple(t, s, v, u);
+   Block4D transformed_block;
+   auto rd_cost =
+       rd_optimize_transform(input_block, transformed_block, {0, 0, 0, 0},
+@@ -90,33 +116,9 @@ RDCostResult TransformPartition::rd_optimize_transform(Block4D &input_block,
+ }
+ 
+ 
+-void scale_block(Block4D &transformed_block, double scaling_factor) {
+-  transformed_block *= scaling_factor;
+-}
+-
+-
+-void TransformPartition::show_partition_codes_and_inferior_bit_plane() const {
+-  std::cerr << "Partition code: ";
+-  for (const auto &flag : partition_code) {
+-    switch (flag) {
+-      case PartitionFlag::transform:
+-        std::cerr << 'T';
+-        break;
+-      case PartitionFlag::spatialSplit:
+-        std::cerr << 'S';
+-        break;
+-      case PartitionFlag::viewSplit:
+-        std::cerr << 'V';
+-        break;
+-    }
+-  }
+-  std::cerr << '\n';
+-}
+-
+-
+-RDCostResult TransformPartition::rd_optimize_transform(Block4D &input_block,
++RDCostResult TransformPartition::rd_optimize_transform(const Block4D &input_block,
+     Block4D &transformed_block, const std::tuple<int, int, int, int> &position,
+-    const std::tuple<int, int, int, int> &lengths,
++    const std::tuple<uint32_t, uint32_t, uint32_t, uint32_t> &lengths,
+     Hierarchical4DEncoder &hierarchical_4d_encoder, double lambda,
+     std::vector<PartitionFlag> &partition_code) {
+   using LF = LightFieldDimension;
+diff --git a/source/Lib/Part2/Encoder/TransformMode/TransformPartition.h b/source/Lib/Part2/Encoder/TransformMode/TransformPartition.h
+index 1d922d0e..c40f29d7 100644
+--- a/source/Lib/Part2/Encoder/TransformMode/TransformPartition.h
++++ b/source/Lib/Part2/Encoder/TransformMode/TransformPartition.h
+@@ -55,6 +55,7 @@ class TransformPartition {
+   int mlength_t_min, mlength_s_min, mlength_v_min, mlength_u_min;
+   bool
+       mEvaluateOptimumBitPlane; /*!< Toggles the optimum bit plane evaluation procedure on and off */
++  void scale_block(Block4D &transformed_block, double scaling_factor);
+ 
+  public:
+   Block4D mPartitionData; /*!< DCT of all subblocks of the partition */
+@@ -64,10 +65,10 @@ class TransformPartition {
+       const LightfieldDimension<uint32_t> &minimum_transform_dimensions);
+   ~TransformPartition() = default;
+   RDCostResult rd_optimize_transform(
+-      Block4D &inputBlock, Hierarchical4DEncoder &entropyCoder, double lambda);
+-  RDCostResult rd_optimize_transform(Block4D &inputBlock,
++      const Block4D &inputBlock, Hierarchical4DEncoder &entropyCoder, double lambda);
++  RDCostResult rd_optimize_transform(const Block4D &inputBlock,
+       Block4D &transformedBlock, const std::tuple<int, int, int, int> &position,
+-      const std::tuple<int, int, int, int> &lengths,
++      const std::tuple<uint32_t, uint32_t, uint32_t, uint32_t> &lengths,
+       Hierarchical4DEncoder &entropyCoder, double lambda,
+       std::vector<PartitionFlag> &partition_code);
+   void encode_partition(Hierarchical4DEncoder &entropyCoder, double lambda);
+diff --git a/source/Lib/Utils/BasicConfiguration/CMakeLists.txt b/source/Lib/Utils/BasicConfiguration/CMakeLists.txt
+index dfa8bd2b..e2a10785 100644
+--- a/source/Lib/Utils/BasicConfiguration/CMakeLists.txt
++++ b/source/Lib/Utils/BasicConfiguration/CMakeLists.txt
+@@ -1,2 +1,4 @@
+-set(UTIL_BASIC_CONFIGURATIONS_SOURCES Option.cpp BasicConfiguration.cpp DefaultParameter.cpp CLIOption.cpp JSONOption.cpp CLIAndJSONOption.cpp)
+-add_library(basic_configuration ${UTIL_BASIC_CONFIGURATIONS_SOURCES})
+\ No newline at end of file
++file(GLOB UTIL_BASIC_CONFIGURATIONS_SOURCES "*.cpp")
++
++add_library(jplm_utils_basic_configuration ${UTIL_BASIC_CONFIGURATIONS_SOURCES})
++
+diff --git a/source/Lib/Utils/Image/CMakeLists.txt b/source/Lib/Utils/Image/CMakeLists.txt
+index 1f4b9f9c..c7b80b4e 100644
+--- a/source/Lib/Utils/Image/CMakeLists.txt
++++ b/source/Lib/Utils/Image/CMakeLists.txt
+@@ -1,31 +1,3 @@
+-set(UTILS_IMAGE
+-    ColorModelUtils.cpp
+-    ColorSpaces.cpp
+-    Generic2DIterator.cpp
+-    Generic2DStructure.cpp
+-    ImageChannel.cpp
+-    ImageChannelUtils.cpp
+-    ImageColorSpacesConversor.cpp
+-    Image.cpp
+-    ImageExceptions.cpp
+-    ImageFile.cpp
+-    ImageIO.cpp
+-    ImageMetrics.cpp
+-    ImageUtils.cpp
+-    Metrics.cpp
+-    PGXFile.cpp
+-    PGXFileIO.cpp
+-    PixelMapFileBinary.cpp
+-    PixelMapFile.cpp
+-    PixelMapFileIO.cpp
+-    PPMBinaryFile.cpp
+-    Raster2DIterator.cpp
+-    RGBImage.cpp
+-    Snake2DIterator.cpp
+-    ThreeChannelImage.cpp
+-    UndefinedImage.cpp
+-    YCbCrImage.cpp
+-    YCoCgImage.cpp)
++file(GLOB UTILS_IMAGE_SOURCES "*.cpp")
+ 
+-add_library(image ${UTILS_IMAGE})
+-target_link_libraries(image stream)
+\ No newline at end of file
++add_library(jplm_utils_image ${UTILS_IMAGE_SOURCES})
+\ No newline at end of file
+diff --git a/source/Lib/Utils/Stats/CMakeLists.txt b/source/Lib/Utils/Stats/CMakeLists.txt
+index fef5ecc7..1342ac5e 100644
+--- a/source/Lib/Utils/Stats/CMakeLists.txt
++++ b/source/Lib/Utils/Stats/CMakeLists.txt
+@@ -1,4 +1,3 @@
+-set(UTIL_RUN_TIME_STATISTICS_SOURCES
+-    RunTimeStatistics.cpp EncoderRunTimeStatistics.cpp)
++file(GLOB UTIL_RUN_TIME_STATISTICS_SOURCES "*.cpp")
+ 
+ add_library(jplm_utils_stats ${UTIL_RUN_TIME_STATISTICS_SOURCES})
+\ No newline at end of file
+diff --git a/source/Lib/Utils/Stats/EncoderRunTimeStatistics.cpp b/source/Lib/Utils/Stats/EncoderRunTimeStatistics.cpp
+index 20be9d79..f759a276 100644
+--- a/source/Lib/Utils/Stats/EncoderRunTimeStatistics.cpp
++++ b/source/Lib/Utils/Stats/EncoderRunTimeStatistics.cpp
+@@ -37,7 +37,7 @@
+  *  \author   Ismael Seidel <i.seidel@samsung.com>
+  *  \date     2020-02-10
+  */
+-#include "Lib/Utils/Stats/EncoderRunTimeStatistics.h"
++#include "EncoderRunTimeStatistics.h"
+ #include "ho-hashlibpp.h"
+ 
+ EncoderRunTimeStatistics::EncoderRunTimeStatistics(std::fstream &stream)
+diff --git a/source/Lib/Utils/Stats/EncoderRunTimeStatistics.h b/source/Lib/Utils/Stats/EncoderRunTimeStatistics.h
+index 6f792d60..48cb8fce 100644
+--- a/source/Lib/Utils/Stats/EncoderRunTimeStatistics.h
++++ b/source/Lib/Utils/Stats/EncoderRunTimeStatistics.h
+@@ -44,7 +44,7 @@
+ 
+ #include <fstream>
+ #include <iostream>
+-#include "Lib/Utils/Stats/RunTimeStatistics.h"
++#include "RunTimeStatistics.h"
+ 
+ 
+ class EncoderRunTimeStatistics : public RunTimeStatistics {
+diff --git a/source/Lib/Utils/Stats/RunTimeStatistics.h b/source/Lib/Utils/Stats/RunTimeStatistics.h
+index 1091edec..37dd7c7a 100644
+--- a/source/Lib/Utils/Stats/RunTimeStatistics.h
++++ b/source/Lib/Utils/Stats/RunTimeStatistics.h
+@@ -45,7 +45,7 @@
+ #include <filesystem>
+ #include <iostream>
+ #ifdef __unix__
+-#include <sys/resource.h>
++  #include <sys/resource.h>
+ #endif
+ 
+ 
+diff --git a/source/Lib/Utils/Stream/CMakeLists.txt b/source/Lib/Utils/Stream/CMakeLists.txt
+index 5b58b7ac..dbd9a42f 100644
+--- a/source/Lib/Utils/Stream/CMakeLists.txt
++++ b/source/Lib/Utils/Stream/CMakeLists.txt
+@@ -1,3 +1,4 @@
+-set(UTIL_STREAM_SOURCES ManagedStream.cpp BinaryTools.cpp CommonExceptions.cpp)
++file(GLOB UTIL_STREAM_SOURCES "*.cpp")
++
++add_library(jplm_utils_stream ${UTIL_STREAM_SOURCES})
+ 
+-add_library(stream ${UTIL_STREAM_SOURCES})
+\ No newline at end of file
+diff --git a/source/Lib/Utils/Stream/CommonExceptions.cpp b/source/Lib/Utils/Stream/CommonExceptions.cpp
+index 1f30be0d..b70adc3b 100644
+--- a/source/Lib/Utils/Stream/CommonExceptions.cpp
++++ b/source/Lib/Utils/Stream/CommonExceptions.cpp
+@@ -39,4 +39,4 @@
+  *  \date     2020-02-13
+  */
+ 
+-#include "Lib/Utils/Stream/CommonExceptions.h"
+\ No newline at end of file
++#include "CommonExceptions.h"
+\ No newline at end of file
+diff --git a/source/Tests/Common/Boxes/Parsers/ColourSpecificationBoxParserTests.cpp b/source/Tests/Common/Boxes/Parsers/ColourSpecificationBoxParserTests.cpp
+index bc38555c..664e1b6a 100644
+--- a/source/Tests/Common/Boxes/Parsers/ColourSpecificationBoxParserTests.cpp
++++ b/source/Tests/Common/Boxes/Parsers/ColourSpecificationBoxParserTests.cpp
+@@ -8,8 +8,8 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
+-#include "Lib/Common/Boxes/Parsers/ColourSpecificationBoxParser.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/ColourSpecificationBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+ 
+diff --git a/source/Tests/Common/Boxes/Parsers/ContiguousCodestreamBoxParserTests.cpp b/source/Tests/Common/Boxes/Parsers/ContiguousCodestreamBoxParserTests.cpp
+index 353acf14..d109a627 100644
+--- a/source/Tests/Common/Boxes/Parsers/ContiguousCodestreamBoxParserTests.cpp
++++ b/source/Tests/Common/Boxes/Parsers/ContiguousCodestreamBoxParserTests.cpp
+@@ -10,8 +10,8 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
+-#include "Lib/Common/Boxes/Parsers/ContiguousCodestreamBoxParser.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/ContiguousCodestreamBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+ 
+diff --git a/source/Tests/Common/CMakeLists.txt b/source/Tests/Common/CMakeLists.txt
+index 2a72e3d4..b9eab0cf 100644
+--- a/source/Tests/Common/CMakeLists.txt
++++ b/source/Tests/Common/CMakeLists.txt
+@@ -2,12 +2,6 @@ add_jplm_test(JPLFileIOTests jpl_file_io_tests
+               JPLFileIOTests.cpp
+               "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream;jplm_common;jplm_part1_decoder;jplm_part1_common_boxes;jplm_common_boxes_parsers")
+ 
+-add_jplm_test(JPLMCodecFactoryTests jplm_codec_factory_tests
+-              JPLMCodecFactoryTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream;jplm_common;jplm_part1_common_boxes;jplm_common_boxes_parsers")
+-
+-target_sources(jplm_codec_factory_tests PRIVATE "${CMAKE_SOURCE_DIR}/source/Lib/Common/JPLMConfiguration.cpp")
+-
+-
+ 
+ add_jplm_test(JPLMConfigurationFactoryTests jplm_configuration_factory_tests
+               JPLMConfigurationFactoryTests.cpp
+diff --git a/source/Tests/Common/Encoder/CMakeLists.txt b/source/Tests/Common/Encoder/CMakeLists.txt
+new file mode 100644
+index 00000000..33c618fc
+--- /dev/null
++++ b/source/Tests/Common/Encoder/CMakeLists.txt
+@@ -0,0 +1,4 @@
++add_jplm_test(JPLMEncoderFactoryTests jplm_encoder_factory_tests
++              JPLMEncoderFactoryTests.cpp "gtest_main;jplm_common_encoder")
++
++# target_sources(jplm_encoder_factory_tests PRIVATE "${CMAKE_SOURCE_DIR}/source/Lib/Common/JPLMConfiguration.cpp")
+\ No newline at end of file
+diff --git a/source/Tests/Common/JPLMCodecFactoryTests.cpp b/source/Tests/Common/Encoder/JPLMEncoderFactoryTests.cpp
+similarity index 90%
+rename from source/Tests/Common/JPLMCodecFactoryTests.cpp
+rename to source/Tests/Common/Encoder/JPLMEncoderFactoryTests.cpp
+index cc7b8c93..bc2fb966 100644
+--- a/source/Tests/Common/JPLMCodecFactoryTests.cpp
++++ b/source/Tests/Common/Encoder/JPLMEncoderFactoryTests.cpp
+@@ -3,7 +3,7 @@
+  * and contributor rights, including patent rights, and no such rights are
+  * granted under this license.
+  *
+- * Copyright (c) 2010-2019, ITU/ISO/IEC
++ * Copyright (c) 2010-2024, ITU/ISO/IEC
+  * All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+@@ -31,15 +31,15 @@
+  * THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-/** \file     JPLMCodecFactoryTests.cpp
++/** \file     JPLMEncoderFactoryTests.cpp
+  *  \brief    
+  *  \details  
+- *  \author   Ismael Seidel <i.seidel@samsung.com>
+- *  \date     2019-09-11
++ *  \author   Ismael Seidel <ismael.seidel@ufsc.br>
++ *  \date     2024-01-31
+  */
+ 
+ #include <iostream>
+-#include "Lib/Common/JPLMCodecFactory.h"
++#include "Lib/Common/Encoder/JPLMEncoderFactory.h"
+ #include "gtest/gtest.h"
+ 
+ int main(int argc, char* argv[]) {
+diff --git a/source/Tests/Part1/Decoder/Boxes/FileTypeBoxParserTests.cpp b/source/Tests/Part1/Decoder/Boxes/FileTypeBoxParserTests.cpp
+index 87cfc63b..57cae1d9 100644
+--- a/source/Tests/Part1/Decoder/Boxes/FileTypeBoxParserTests.cpp
++++ b/source/Tests/Part1/Decoder/Boxes/FileTypeBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+ 
+diff --git a/source/Tests/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParserTests.cpp b/source/Tests/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParserTests.cpp
+index 67686fed..76c29314 100644
+--- a/source/Tests/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParserTests.cpp
++++ b/source/Tests/Part1/Decoder/Boxes/JpegPlenoSignatureBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+ 
+diff --git a/source/Tests/Part1/Decoder/CMakeLists.txt b/source/Tests/Part1/Decoder/CMakeLists.txt
+index b7c666ff..21789685 100644
+--- a/source/Tests/Part1/Decoder/CMakeLists.txt
++++ b/source/Tests/Part1/Decoder/CMakeLists.txt
+@@ -1,3 +1,3 @@
+ add_jplm_test(JPLFileFromStreamTests jpl_file_from_stream_part1_tests
+               JPLFileFromStreamTests.cpp
+-              "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream;jplm_part1_decoder;jplm_common_boxes_parsers")
+\ No newline at end of file
++              "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream;jplm_part1_decoder;jplm_part1_common;jplm_common_boxes_parsers")
+\ No newline at end of file
+diff --git a/source/Tests/Part2/Common/Boxes/CMakeLists.txt b/source/Tests/Part2/Common/Boxes/CMakeLists.txt
+index 82935c06..5b046a00 100644
+--- a/source/Tests/Part2/Common/Boxes/CMakeLists.txt
++++ b/source/Tests/Part2/Common/Boxes/CMakeLists.txt
+@@ -1,15 +1,15 @@
+-add_jplm_test(LightFieldHeaderContentsTests light_field_header_contents_tests LightFieldHeaderContentsTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldBoxTests jpeg_pleno_light_field_box_tests JpegPlenoLightFieldBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldContentsTests jpeg_pleno_light_field_contents_tests JpegPlenoLightFieldContentsTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldHeaderContentsTests jpeg_pleno_light_field_header_contents_tests JpegPlenoLightFieldHeaderContentsTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(LightFieldHeaderBoxTests light_field_header_box_tests LightFieldHeaderBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(ProfileAndLevelContentsTests profile_and_level_contents_tests ProfileAndLevelContentsTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(CameraParameterBoxTests camera_parameter_box_tests CameraParameterBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldHeaderBoxTests jpeg_pleno_light_field_header_box_tests JpegPlenoLightFieldHeaderBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldReferenceViewBoxTests jpeg_pleno_light_field_reference_view_box_tests JpegPlenoLightFieldReferenceViewBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldNormalizedDisparityViewBoxTests jpeg_pleno_light_field_normalized_disparity_view_box_tests JpegPlenoLightFieldNormalizedDisparityViewBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldIntermediateViewBoxTests jpeg_pleno_light_field_intermediate_view_box_tests JpegPlenoLightFieldIntermediateViewBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldPredictionParameterBoxTests jpeg_pleno_light_field_prediction_parameter_box_tests JpegPlenoLightFieldPredictionParameterBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldViewPredictionResidualDescriptionBoxTests jpeg_pleno_light_field_view_prediction_residual_description_box_tests JpegPlenoLightFieldViewPredictionResidualDescriptionBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(CommonCodestreamElementsBoxTests common_codestream_elements_box_tests CommonCodestreamElementsBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+-add_jplm_test(JpegPlenoLightFieldViewDescriptionBoxTests jpeg_pleno_light_field_view_description_box_tests JpegPlenoLightFieldViewDescriptionBoxTests.cpp "gtest_main;jplm_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+\ No newline at end of file
++add_jplm_test(LightFieldHeaderContentsTests light_field_header_contents_tests LightFieldHeaderContentsTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldBoxTests jpeg_pleno_light_field_box_tests JpegPlenoLightFieldBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldContentsTests jpeg_pleno_light_field_contents_tests JpegPlenoLightFieldContentsTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldHeaderContentsTests jpeg_pleno_light_field_header_contents_tests JpegPlenoLightFieldHeaderContentsTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(LightFieldHeaderBoxTests light_field_header_box_tests LightFieldHeaderBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(ProfileAndLevelContentsTests profile_and_level_contents_tests ProfileAndLevelContentsTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(CameraParameterBoxTests camera_parameter_box_tests CameraParameterBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldHeaderBoxTests jpeg_pleno_light_field_header_box_tests JpegPlenoLightFieldHeaderBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldReferenceViewBoxTests jpeg_pleno_light_field_reference_view_box_tests JpegPlenoLightFieldReferenceViewBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldNormalizedDisparityViewBoxTests jpeg_pleno_light_field_normalized_disparity_view_box_tests JpegPlenoLightFieldNormalizedDisparityViewBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldIntermediateViewBoxTests jpeg_pleno_light_field_intermediate_view_box_tests JpegPlenoLightFieldIntermediateViewBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldPredictionParameterBoxTests jpeg_pleno_light_field_prediction_parameter_box_tests JpegPlenoLightFieldPredictionParameterBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldViewPredictionResidualDescriptionBoxTests jpeg_pleno_light_field_view_prediction_residual_description_box_tests JpegPlenoLightFieldViewPredictionResidualDescriptionBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(CommonCodestreamElementsBoxTests common_codestream_elements_box_tests CommonCodestreamElementsBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
++add_jplm_test(JpegPlenoLightFieldViewDescriptionBoxTests jpeg_pleno_light_field_view_description_box_tests JpegPlenoLightFieldViewDescriptionBoxTests.cpp "gtest_main;jplm_box_model;jplm_part2_common_boxes;jplm_common_boxes_generic;stream;image;jplm_part1_common_boxes;jplm_part2_common_boxes")
+\ No newline at end of file
+diff --git a/source/Tests/Part2/Common/CMakeLists.txt b/source/Tests/Part2/Common/CMakeLists.txt
+index 71ca240f..4505f231 100644
+--- a/source/Tests/Part2/Common/CMakeLists.txt
++++ b/source/Tests/Part2/Common/CMakeLists.txt
+@@ -1,14 +1,14 @@
+-add_jplm_test(ViewTests view_tests ViewTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(ViewFromPPMFileTests view_from_ppm_file_tests ViewFromPPMFileTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(LightfieldCoordinateTests lightfield_coordinate_tests LightfieldCoordinateTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(LightfieldDimensionTests lightfield_dimension_tests LightfieldDimensionTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(LightfieldTests lightfield_tests LightfieldTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(LightfieldIOConfigurationTests lightfield_io_configuration_tests LightfieldIOConfigurationTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(LightfieldFromFileTests lightfield_from_file_tests LightfieldFromFileTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(PPM3CharViewToFilenameTranslatorTests ppm3_char_view_to_filename_translator_tests PPM3CharViewToFilenameTranslatorTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
+-add_jplm_test(PGX3CharViewToFilenameTranslatorTests pgx3_char_view_to_filename_translator_tests PGX3CharViewToFilenameTranslatorTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image")
++add_jplm_test(ViewTests view_tests ViewTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(ViewFromPPMFileTests view_from_ppm_file_tests ViewFromPPMFileTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(LightfieldCoordinateTests lightfield_coordinate_tests LightfieldCoordinateTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(LightfieldDimensionTests lightfield_dimension_tests LightfieldDimensionTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(LightfieldTests lightfield_tests LightfieldTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(LightfieldIOConfigurationTests lightfield_io_configuration_tests LightfieldIOConfigurationTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(LightfieldFromFileTests lightfield_from_file_tests LightfieldFromFileTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(PPM3CharViewToFilenameTranslatorTests ppm3_char_view_to_filename_translator_tests PPM3CharViewToFilenameTranslatorTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
++add_jplm_test(PGX3CharViewToFilenameTranslatorTests pgx3_char_view_to_filename_translator_tests PGX3CharViewToFilenameTranslatorTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image")
+ 
+ add_jplm_test(JPLFileTests
+               jpl_file_part2_common_box_tests
+               JPLFileTests.cpp
+-              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;image;jplm_common;jplm_part1_common_boxes;jplm_part2_common_boxes")
+\ No newline at end of file
++              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_utils_image;jplm_common;jplm_part1_common_boxes;jplm_part2_common_boxes;jplm_common_boxes_decoder")
+\ No newline at end of file
+diff --git a/source/Tests/Part2/Common/TransformMode/CMakeLists.txt b/source/Tests/Part2/Common/TransformMode/CMakeLists.txt
+index 642cd9c6..8b868011 100644
+--- a/source/Tests/Part2/Common/TransformMode/CMakeLists.txt
++++ b/source/Tests/Part2/Common/TransformMode/CMakeLists.txt
+@@ -1,12 +1,12 @@
+ add_jplm_test(Block4DTests block4d_tests
+               Block4DTests.cpp
+-              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_part2_common_transform_mode;image;stream")
++              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_part2_common_transform_mode;jplm_utils_image;jplm_utils_stream")
+ 
+ 
+ add_jplm_test(CodestreamPointerSetMarkerSegmentTests
+               codestream_pointer_set_marker_segment_tests
+               CodestreamPointerSetMarkerSegmentTests.cpp
+-              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_part2_common_transform_mode;image;stream;jplm_part2_decoder_transform_mode")
++              "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_part2_common_transform_mode;jplm_utils_image;jplm_utils_stream;jplm_part2_decoder_transform_mode")
+ 
+ 
+ add_jplm_test(ColourComponentScalingMarkerSegmentTests colour_component_scaling_marker_segment_tests ColourComponentScalingMarkerSegmentTests.cpp "gtest_main;jplm_part2_common;jplm_common_boxes;jplm_common_boxes_generic;jplm_part2_common_transform_mode;image;stream")
+\ No newline at end of file
+diff --git a/source/Tests/Part2/Decoder/Boxes/CMakeLists.txt b/source/Tests/Part2/Decoder/Boxes/CMakeLists.txt
+index a5849451..f6b5f24c 100644
+--- a/source/Tests/Part2/Decoder/Boxes/CMakeLists.txt
++++ b/source/Tests/Part2/Decoder/Boxes/CMakeLists.txt
+@@ -1,5 +1,5 @@
+-add_jplm_test(ProfileAndLevelBoxParserTests profile_and_level_box_parser_tests ProfileAndLevelBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream")
+-add_jplm_test(LightFieldHeaderBoxParserTests light_field_header_box_parser_tests LightFieldHeaderBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream")
+-add_jplm_test(JpegPlenoLightFieldHeaderBoxParserTests jpeg_pleno_light_field_header_box_parser_tests JpegPlenoLightFieldHeaderBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream")
+-add_jplm_test(JpegPlenoLightFieldBoxParserTests jpeg_pleno_light_field_box_parser_tests JpegPlenoLightFieldBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream")
+-add_jplm_test(CameraParameterBoxParserTests camera_parameter_box_parser_tests CameraParameterBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;stream")
+\ No newline at end of file
++add_jplm_test(ProfileAndLevelBoxParserTests profile_and_level_box_parser_tests ProfileAndLevelBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;jplm_utils_stream")
++add_jplm_test(LightFieldHeaderBoxParserTests light_field_header_box_parser_tests LightFieldHeaderBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;jplm_utils_stream")
++add_jplm_test(JpegPlenoLightFieldHeaderBoxParserTests jpeg_pleno_light_field_header_box_parser_tests JpegPlenoLightFieldHeaderBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;jplm_utils_stream")
++add_jplm_test(JpegPlenoLightFieldBoxParserTests jpeg_pleno_light_field_box_parser_tests JpegPlenoLightFieldBoxParserTests.cpp "gtest_main;jplm_common;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;jplm_utils_stream")
++add_jplm_test(CameraParameterBoxParserTests camera_parameter_box_parser_tests CameraParameterBoxParserTests.cpp "gtest_main;jplm_part2_boxes_decoder;jplm_common_boxes_parsers;jplm_utils_stream")
+\ No newline at end of file
+diff --git a/source/Tests/Part2/Decoder/Boxes/CameraParameterBoxParserTests.cpp b/source/Tests/Part2/Decoder/Boxes/CameraParameterBoxParserTests.cpp
+index a1bfc705..56714c8c 100644
+--- a/source/Tests/Part2/Decoder/Boxes/CameraParameterBoxParserTests.cpp
++++ b/source/Tests/Part2/Decoder/Boxes/CameraParameterBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Decoder/Boxes/CameraParameterBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "Tests/Part2/Common/Boxes/CameraParameterBoxTests.h"
+diff --git a/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParserTests.cpp b/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParserTests.cpp
+index 5bb93af7..eb534c63 100644
+--- a/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParserTests.cpp
++++ b/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParserTests.cpp
+@@ -43,7 +43,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+diff --git a/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParserTests.cpp b/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParserTests.cpp
+index 25d19deb..d8967e02 100644
+--- a/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParserTests.cpp
++++ b/source/Tests/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Decoder/Boxes/JpegPlenoLightFieldHeaderBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+diff --git a/source/Tests/Part2/Decoder/Boxes/LightFieldHeaderBoxParserTests.cpp b/source/Tests/Part2/Decoder/Boxes/LightFieldHeaderBoxParserTests.cpp
+index 83e95189..6caca96b 100644
+--- a/source/Tests/Part2/Decoder/Boxes/LightFieldHeaderBoxParserTests.cpp
++++ b/source/Tests/Part2/Decoder/Boxes/LightFieldHeaderBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Decoder/Boxes/LightFieldHeaderBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+diff --git a/source/Tests/Part2/Decoder/Boxes/ProfileAndLevelBoxParserTests.cpp b/source/Tests/Part2/Decoder/Boxes/ProfileAndLevelBoxParserTests.cpp
+index 8a27b3e7..c2fee453 100644
+--- a/source/Tests/Part2/Decoder/Boxes/ProfileAndLevelBoxParserTests.cpp
++++ b/source/Tests/Part2/Decoder/Boxes/ProfileAndLevelBoxParserTests.cpp
+@@ -42,7 +42,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <string>
+-#include "Lib/Common/Boxes/Parsers/BoxParserRegistry.h"
++#include "Lib/Common/Decoder/Boxes/BoxParserRegistry.h"
+ #include "Lib/Part2/Decoder/Boxes/ProfileAndLevelBoxParser.h"
+ #include "Lib/Utils/Stream/ManagedStream.h"
+ #include "gtest/gtest.h"
+diff --git a/source/Tests/Part2/Decoder/CMakeLists.txt b/source/Tests/Part2/Decoder/CMakeLists.txt
+index 820621a0..fa891cb9 100644
+--- a/source/Tests/Part2/Decoder/CMakeLists.txt
++++ b/source/Tests/Part2/Decoder/CMakeLists.txt
+@@ -1,10 +1,10 @@
+ add_jplm_test(JPLFileFromStreamTests jpl_file_from_stream_part2_tests
+               JPLFileFromStreamTests.cpp
+-              "gtest_main;stream;jplm_common_boxes_parsers;jplm_part2_boxes_decoder;jplm_common;jplm_part1_decoder;jplm_part2_common_transform_mode")
++              "gtest_main;jplm_utils_stream;jplm_common_boxes_parsers;jplm_part2_boxes_decoder;jplm_common;jplm_part1_decoder;jplm_part2_common_transform_mode")
+ 
+ add_jplm_test(JPLM4DTransformModeLightFieldDecoderTests
+               jplm_4d_transform_mode_light_field_decoder_tests
+               JPLM4DTransformModeLightFieldDecoderTests.cpp
+-              "gtest_main;stream;jplm_common_boxes_parsers;jplm_part2_boxes_decoder;jplm_common;jplm_part1_decoder;jplm_part2_common_transform_mode")
++              "gtest_main;jplm_part2_decoder;jplm_common;jplm_part1_decoder;jplm_part1_common")
+ 
+-target_sources(jplm_4d_transform_mode_light_field_decoder_tests PRIVATE "${CMAKE_SOURCE_DIR}/source/Lib/Common/JPLMConfiguration.cpp")
++# target_sources(jplm_4d_transform_mode_light_field_decoder_tests PRIVATE "${CMAKE_SOURCE_DIR}/source/Lib/Common/JPLMConfiguration.cpp")
+diff --git a/source/Tests/Part2/Encoder/CMakeLists.txt b/source/Tests/Part2/Encoder/CMakeLists.txt
+index 38f1e0f2..d837150a 100644
+--- a/source/Tests/Part2/Encoder/CMakeLists.txt
++++ b/source/Tests/Part2/Encoder/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ add_jplm_test(JPLM4DTransformModeLightFieldEncoderTests
+               jplm_4d_transform_mode_light_field_encoder_tests
+               JPLM4DTransformModeLightFieldEncoderTests.cpp
+-              "gtest_main;jplm_part1_common;jplm_part2_encoder;jplm_part2_common;image;jplm_common")
++              "gtest_main;jplm_part1_common;jplm_part2_encoder;jplm_part2_common;jplm_utils_image;jplm_common")
+ # target_sources(jplm_4d_transform_mode_light_field_encoder_tests PRIVATE "${CMAKE_SOURCE_DIR}/source/Lib/Common/JPLMConfiguration.cpp")
+diff --git a/source/Tests/Utils/Image/CMakeLists.txt b/source/Tests/Utils/Image/CMakeLists.txt
+index 4f8ad1d9..3ff8fc17 100644
+--- a/source/Tests/Utils/Image/CMakeLists.txt
++++ b/source/Tests/Utils/Image/CMakeLists.txt
+@@ -1,16 +1,16 @@
+-add_jplm_test(Metrics metrics_tests MetricsTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ImageChannel image_channel_tests ImageChannelTests.cpp "gtest_main;image;stream")
+-add_jplm_test(Image image_tests ImageTests.cpp "gtest_main;image;stream")
+-# add_jplm_test(ColorSpace color_space_tests ColorSpacesTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ColorModelUtils color_model_utils_tests ColorModelUtilsTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ImageColorSpacesConversor image_color_spaces_conversor_tests ImageColorSpacesConversorTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ImageMetric image_metrics_tests ImageMetricTests.cpp "gtest_main;image;stream")
+-add_jplm_test(PixelMapFileIO pixelmap_file_io_tests PixelMapFileIOTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ImageIO image_io_tests ImageIOTests.cpp "gtest_main;image;stream")
+-add_jplm_test(PPMBinaryFile ppm_binary_file_tests PPMBinaryFileTests.cpp "gtest_main;image;stream")
+-add_jplm_test(PPMBinaryFileImage ppm_binary_file_image_tests PPMBinaryFileImageTests.cpp "gtest_main;image;stream")
+-add_jplm_test(Raster2DIterator raster_2d_iterator_tests Raster2DIteratorTests.cpp "gtest_main;image;stream")
+-add_jplm_test(ImageUtils image_utils_tests ImageUtilsTests.cpp "gtest_main;image;stream")
+-add_jplm_test(PGXFile pgx_file_tests PGXFileTests.cpp "gtest_main;image;stream")
++add_jplm_test(Metrics metrics_tests MetricsTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ImageChannel image_channel_tests ImageChannelTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(Image image_tests ImageTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++# add_jplm_test(ColorSpace color_space_tests ColorSpacesTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ColorModelUtils color_model_utils_tests ColorModelUtilsTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ImageColorSpacesConversor image_color_spaces_conversor_tests ImageColorSpacesConversorTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ImageMetric image_metrics_tests ImageMetricTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(PixelMapFileIO pixelmap_file_io_tests PixelMapFileIOTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ImageIO image_io_tests ImageIOTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(PPMBinaryFile ppm_binary_file_tests PPMBinaryFileTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(PPMBinaryFileImage ppm_binary_file_image_tests PPMBinaryFileImageTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(Raster2DIterator raster_2d_iterator_tests Raster2DIteratorTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(ImageUtils image_utils_tests ImageUtilsTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
++add_jplm_test(PGXFile pgx_file_tests PGXFileTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
+ 
+-add_jplm_test(PGXFileIO pgx_file_io_tests PGXFileIOTests.cpp "gtest_main;image;stream")
+\ No newline at end of file
++add_jplm_test(PGXFileIO pgx_file_io_tests PGXFileIOTests.cpp "gtest_main;jplm_utils_image;jplm_utils_stream")
+\ No newline at end of file
+diff --git a/source/Tests/Utils/Stream/CMakeLists.txt b/source/Tests/Utils/Stream/CMakeLists.txt
+index 599eba7d..6c21329e 100644
+--- a/source/Tests/Utils/Stream/CMakeLists.txt
++++ b/source/Tests/Utils/Stream/CMakeLists.txt
+@@ -1,2 +1,2 @@
+-add_jplm_test(BinaryToolsTests binary_tools_tests BinaryToolsTests.cpp "gtest_main;stream")
+-add_jplm_test(ManagedStreamTests managed_stream_tests ManagedStreamTests.cpp "gtest_main;stream")
+\ No newline at end of file
++add_jplm_test(BinaryToolsTests binary_tools_tests BinaryToolsTests.cpp "gtest_main;jplm_utils_stream")
++add_jplm_test(ManagedStreamTests managed_stream_tests ManagedStreamTests.cpp "gtest_main;jplm_utils_stream")
+\ No newline at end of file

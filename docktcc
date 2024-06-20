@@ -1,4 +1,0 @@
-docker run -it --rm \
--v $(pwd):/code \
-tcc:latest \
-$@
